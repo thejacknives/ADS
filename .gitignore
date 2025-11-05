@@ -1,0 +1,26 @@
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg-info/
+*.egg
+
+# Environment files
+.env
+.env.*
+
+# Django
+db.sqlite3
+
+# Node / Vite
+movieapp/frontend/node_modules/
+movieapp/frontend/dist/
+npm-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# OS / Editor
+.DS_Store
+Thumbs.db
