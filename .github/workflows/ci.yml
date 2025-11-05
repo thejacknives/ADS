@@ -19,7 +19,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ hashFiles('backend/requirements.txt') }}
+          key: ${{ runner.os }}-pip-${{ hashFiles('movieapp/backend/requirements.txt') }}
       - run: pip install -r requirements.txt
       - name: Django checks
         run: python manage.py check
@@ -39,7 +39,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.npm
-          key: ${{ runner.os }}-node-${{ hashFiles('frontend/package-lock.json') }}
+          key: ${{ runner.os }}-node-${{ hashFiles('movieapp/frontend/package-lock.json') }}
       - run: |
           if [ -f package-lock.json ]; then npm ci; else npm install; fi
       - run: npm run build
@@ -48,9 +48,12 @@ jobs:
   docker-build:
     runs-on: ubuntu-latest
     needs: [backend, frontend]
+    defaults:
+      run:
+        working-directory: movieapp
     steps:
       - uses: actions/checkout@v4
       - name: Build backend image
-        run: docker build -f movieapp/backend/Dockerfile -t movieapp-backend:ci .
+        run: docker build -f Dockerfile.backend -t movieapp-backend:ci .
       - name: Build frontend image
-        run: docker build -f movieapp/frontend/Dockerfile -t movieapp-frontend:ci .
+        run: docker build -f Dockerfile.frontend -t movieapp-frontend:ci .
