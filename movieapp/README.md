@@ -48,3 +48,7 @@ Notes
 - Replace placeholder code with your real app.
 - Add tests (pytest for Django, Vitest for React) later.
 - Keep secrets in provider or GitHub Secrets (never commit `.env`).
+
+
+
+# (SMALL CHANGE TO CHECK IF CI WORKS)
