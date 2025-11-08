@@ -8,5 +8,6 @@ COPY backend/ ./
 RUN python manage.py collectstatic --noinput || true
 EXPOSE 8000
 
-# Bind to $PORT (Render) or 8000 locally, 1 worker, log requests
-CMD ["/bin/sh","-lc","gunicorn app.wsgi:application --bind 0.0.0.0:${PORT:-8000} --workers 1 --timeout 120 --access-logfile -"]
+
+# run migrations every deploy, then start gunicorn on $PORT (Render) or 8000 locally
+CMD ["/bin/sh","-lc","python manage.py migrate && gunicorn app.wsgi:application --bind 0.0.0.0:${PORT:-8000} --workers 1 --timeout 120 --access-logfile -"]

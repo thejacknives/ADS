@@ -9,11 +9,10 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "dev-only")
 DEBUG = os.getenv("DEBUG", "false").lower() == "true"
 # replace your current ALLOWED_HOSTS line with:
-ALLOWED_HOSTS = os.getenv(
+ALLOWED_HOSTS = [h.strip() for h in os.getenv(
     "ALLOWED_HOSTS",
-    ".onrender.com,localhost,127.0.0.1"
-).split(",")
-
+    ".onrender.com,localhost,127.0.0.1"  # default accepts any *.onrender.com
+).split(",") if h.strip()]
 
 
 INSTALLED_APPS = [
