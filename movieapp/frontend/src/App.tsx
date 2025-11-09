@@ -45,7 +45,7 @@ export default function App() {
   }, [])
 
   return (
-    <div style={{ fontFamily: 'system-ui', padding: 24, backgroundColor: '#f0f0f0', minHeight: '100vh' }}>
+    <div style={{ fontFamily: 'system-ui', padding: 24, backgroundColor: '#5c9d77ff', minHeight: '100vh' }}>
       <h1>MovieApp</h1>
       <p>API: <code>{apiUrl ?? 'loading...'}</code></p>
       <p>Backend health: <b>{status}</b></p>
