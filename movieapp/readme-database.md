@@ -312,3 +312,16 @@ else:
 | Use Render database locally | Set `DATABASE_URL=postgresql://render...` (External URL |
 
 ---
+
+## Common Commands
+
+```bash
+# Run migrations (creates/updates tables)
+python manage.py migrate
+
+# Create admin superuser
+python manage.py createsuperuser
+
+# Reset database sequence (in pgAdmin/psql)
+TRUNCATE TABLE appuser RESTART IDENTITY CASCADE;
+```

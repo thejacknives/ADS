@@ -36,6 +36,8 @@ class Movie(models.Model):
 
 
 class Rating(models.Model):
+    # Custom primary key to match SQL: rating_id BIGSERIAL PRIMARY KEY
+    rating_id = models.BigAutoField(primary_key=True)
     score = models.FloatField()
     created_at = models.DateField(auto_now_add=True)
     movie = models.ForeignKey(Movie, on_delete=models.CASCADE, related_name='ratings')
@@ -49,6 +51,8 @@ class Rating(models.Model):
 
 
 class Recommendation(models.Model):
+    # Custom primary key to match SQL: rec_id BIGSERIAL PRIMARY KEY
+    rec_id = models.BigAutoField(primary_key=True)
     predicted_score = models.FloatField(null=True, blank=True)
     movie = models.ForeignKey(Movie, on_delete=models.CASCADE, related_name='recommendations')
     user = models.ForeignKey(AppUser, on_delete=models.CASCADE, related_name='recommendations')
