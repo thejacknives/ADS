@@ -1,54 +1,149 @@
 import { useEffect, useState } from 'react'
 
 export default function App() {
+
+  // Stores the backend health check status ('ok', 'error', 'loading...')
   const [status, setStatus] = useState('loading...')
+  
+  // Stores the backend API URL (e.g., 'http://localhost:8000')
   const [apiUrl, setApiUrl] = useState<string | null>(null)
+  
+  // Stores the result message after creating a user (success or error)
+  const [userResult, setUserResult] = useState<string | null>(null)
+  
+  // Form input states for creating a new user
+  const [username, setUsername] = useState('')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+
 
   useEffect(() => {
-    // Read the build-time env var (Vite injects this at build time).
-    // Cast import.meta to any to avoid TypeScript errors when Vite types are not present.
+    // Get API URL from environment variable (set in .env or Docker)
+    // Falls back to localhost:8000 if not set
     const raw = ((import.meta as any).env?.VITE_API_URL) || 'http://localhost:8000'
-    // Normalize by removing trailing slashes to avoid double-slashes in paths
+    
+    // Remove trailing slashes to avoid double slashes in URLs
+    // e.g., 'http://localhost:8000/' becomes 'http://localhost:8000'
     let api = raw.replace(/\/+$/, '')
 
-    // Runtime safeguard: if the built value falls back to localhost but the app
-    // is being served from a non-localhost origin, override to the deployed
-    // backend URL. This is a short-term workaround while ensuring the build
-    // used the correct VITE_API_URL.
+    // RUNTIME OVERRIDE: If app is deployed (not localhost) but API URL 
+    // still points to localhost, override to the production backend URL.
     try {
       if (api.includes('localhost') && typeof window !== 'undefined' && window.location && window.location.hostname !== 'localhost') {
         api = 'https://movieapp-backend-tsu0.onrender.com'
-        console.warn('Overriding API URL at runtime because build-time value pointed to localhost')
       }
-    } catch (e) {
-      // noop
-    }
+    } catch (e) {}
+    
+    // Save the API URL to state so we can use it in other functions
     setApiUrl(api)
 
-    const url = `${api}/health/`
-    fetch(url, { mode: 'cors' })
+    // ============================================
+    // HEALTH CHECK - Test if backend is running
+    // ============================================
+    // Calls: GET http://localhost:8000/health/
+    // Expects: { "status": "ok" }
+    fetch(`${api}/health/`, { mode: 'cors' })
       .then(async r => {
-        if (!r.ok) {
-          const text = await r.text().catch(() => '')
-          throw new Error(`HTTP ${r.status} ${r.statusText} ${text}`)
-        }
+        if (!r.ok) throw new Error(`HTTP ${r.status}`)
         const j = await r.json().catch(() => null)
         setStatus((j && j.status) || 'ok')
       })
-      .catch((err) => {
-        const msg = err?.message || String(err)
-        setStatus(`error: ${msg}`)
-        // Helpful debugging info in console
-        // Check network tab for CORS or network errors
-        console.error('Health check failed', { url, msg, err })
-      })
-  }, [])
+      .catch((err) => setStatus(`error: ${err?.message}`))
+  }, []) 
 
+
+  const createUser = async () => {
+    // Validate that all fields are filled
+    if (!username || !email || !password) {
+      setUserResult('Please fill all fields')
+      return
+    }
+
+    try {
+      // ============================================
+      // API CALL - POST request to create user
+      // ============================================
+      // Calls: POST http://localhost:8000/api/users/
+      // Sends: { "username": "...", "email": "...", "password": "..." }
+      // Expects: { "id": 1, "username": "...", "email": "..." }
+      const response = await fetch(`${apiUrl}/api/users/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, email, password })
+      })
+
+      if (response.ok) {
+
+        const data = await response.json()
+        setUserResult(`User created! ID: ${data.id}, Username: ${data.username}`)
+        
+
+        setUsername('')
+        setEmail('')
+        setPassword('')
+      } else {
+        // ERROR - Backend returned an error (e.g., user already exists)
+        const error = await response.json()
+        setUserResult(`Error: ${JSON.stringify(error)}`)
+      }
+    } catch (err: any) {
+      // Couldn't reach the backend at all
+      setUserResult(`Error: ${err.message}`)
+    }
+  }
+
+  //UI
   return (
     <div style={{ fontFamily: 'system-ui', padding: 24, backgroundColor: '#ff00a6ff', minHeight: '100vh' }}>
+
       <h1>MovieApp</h1>
       <p>API: <code>{apiUrl ?? 'loading...'}</code></p>
       <p>Backend health: <b>{status}</b></p>
+
+      <hr style={{ margin: '20px 0' }} />
+
+
+      <h2>Test: Create User</h2>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10, maxWidth: 300 }}>
+
+        <input
+          type="text"
+          placeholder="Username"
+          value={username}
+          onChange={(e) => setUsername(e.target.value)}
+          style={{ padding: 8 }}
+        />
+        
+
+        <input
+          type="email"
+          placeholder="Email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          style={{ padding: 8 }}
+        />
+        
+
+        <input
+          type="password"
+          placeholder="Password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          style={{ padding: 8 }}
+        />
+        
+
+        <button onClick={createUser} style={{ padding: 10, cursor: 'pointer' }}>
+          Create User
+        </button>
+      </div>
+
+
+      {userResult && (
+        <p style={{ marginTop: 10, padding: 10, backgroundColor: 'white', borderRadius: 4 }}>
+          {userResult}
+        </p>
+      )}
     </div>
   )
 }
