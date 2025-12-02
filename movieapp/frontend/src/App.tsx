@@ -63,10 +63,10 @@ export default function App() {
       // ============================================
       // API CALL - POST request to create user
       // ============================================
-      // Calls: POST http://localhost:8000/api/users/
-      // Sends: { "username": "...", "email": "...", "password": "..." }
+      // Calls: POST http://localhost:8000/api/auth/register/
+      // Sends: { "name": "...", "email": "...", "password": "..." }
       // Expects: { "id": 1, "username": "...", "email": "..." }
-      const response = await fetch(`${apiUrl}/api/users/`, {
+      const response = await fetch(`${apiUrl}/api/auth/register/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, email, password })
