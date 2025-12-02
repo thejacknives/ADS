@@ -6,7 +6,11 @@ Flow:
   Frontend → HTTP Request → urls.py → views.py → Database → Response → Frontend
 """
 
+import re
+
 from django.contrib.auth.hashers import check_password, make_password
+from django.core.exceptions import ValidationError
+from django.core.validators import validate_email
 from rest_framework import status
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
@@ -21,6 +25,20 @@ def _validate_user_payload(username, email, password):
     if not username or not email or not password:
         return Response(
             {'error': 'name/username, email, and password are required'},
+            status=status.HTTP_400_BAD_REQUEST,
+        ), None
+
+    if username and not re.fullmatch(r"[A-Za-z0-9_]+", username):
+        return Response(
+            {'error': 'Username can only contain letters, numbers, and underscores'},
+            status=status.HTTP_400_BAD_REQUEST,
+        ), None
+
+    try:
+        validate_email(email)
+    except ValidationError:
+        return Response(
+            {'error': 'Email is not valid'},
             status=status.HTTP_400_BAD_REQUEST,
         ), None
 

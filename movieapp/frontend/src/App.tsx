@@ -59,6 +59,18 @@ export default function App() {
       return
     }
 
+    const usernameRegex = /^[A-Za-z0-9_]+$/
+    if (!usernameRegex.test(username)) {
+      setUserResult('Username can only contain letters, numbers, and underscores')
+      return
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(email)) {
+      setUserResult('Please enter a valid email address')
+      return
+    }
+
     try {
       // ============================================
       // API CALL - POST request to create user
