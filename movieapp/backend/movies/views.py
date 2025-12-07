@@ -633,3 +633,92 @@ def delete_rating(request, rating_id):
         {'message': 'Rating deleted successfully'},
         status=status.HTTP_204_NO_CONTENT,
     )
+
+@api_view(['GET'])
+def list_my_ratings(request):
+    """
+    List all ratings made by the logged-in user.
+    """
+
+    # check if user is logged in
+    error_response, user_id = _check_user_logged_in(request)
+    if error_response:
+        return error_response
+    
+    # get all ratings by the user
+    ratings = Rating.objects.filter(user_id=user_id)
+
+    if not ratings.exists():
+        return Response(
+            {
+                'user_id': user_id,
+                'total_ratings': 0,
+                'ratings': [],
+            },
+            status=status.HTTP_200_OK,
+        )
+    
+    # convert django object to json
+    ratings_data = []
+    for rating in ratings:
+        ratings_data.append({
+            'rating_id': rating.rating_id,
+            'score': rating.score,
+            'created_at': rating.created_at,
+            'movie_id': rating.movie_id,
+        })
+
+    total_ratings = ratings.count()
+
+    return Response(
+        {
+            'user_id': user_id,
+            'total_ratings': total_ratings,
+            'ratings': ratings_data,
+        },
+        status=status.HTTP_200_OK,
+    )
+
+@api_view(['GET'])
+def list_my_recommendations(request):
+    """
+    List all recommendations for the logged-in user.
+    """
+
+    # check if user is logged in
+    error_response, user_id = _check_user_logged_in(request)
+    if error_response:
+        return error_response
+    
+    # get all recommendations for the user
+    recommendations = Recommendation.objects.filter(user_id=user_id)
+
+    if not recommendations.exists():
+        return Response(
+            {
+                'user_id': user_id,
+                'total_recommendations': 0,
+                'recommendations': [],
+            },
+            status=status.HTTP_200_OK,
+        )
+    
+    # convert django object to json
+    recommendations_data = []
+    for rec in recommendations:
+        recommendations_data.append({
+            'rec_id': rec.rec_id,
+            'predicted_score': rec.predicted_score,
+            'movie_id': rec.movie_id,
+        })
+
+    total_recommendations = recommendations.count()
+
+    return Response(
+        {
+            'user_id': user_id,
+            'total_recommendations': total_recommendations,
+            'recommendations': recommendations_data,
+        },
+        status=status.HTTP_200_OK,
+    )
