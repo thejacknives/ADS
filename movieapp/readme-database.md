@@ -73,7 +73,7 @@ DB_PASSWORD=movieapp
 DEBUG=true
 ```
 
-**3. Run migrations and start server:**
+**4. Run migrations and start server:**
 
 ```bash
 cd movieapp/backend
@@ -91,24 +91,24 @@ The production database is hosted on Render.
 
 | Field              | Value                                                        |
 | ------------------ | ------------------------------------------------------------ |
-| **Host**     | `dpg-d4qd9nu3jp1c739fpo3g-a.frankfurt-postgres.render.com` |
+| **Host**     | `dpg-d45s9sre5dus73cciigg-a.frankfurt-postgres.render.com` |
 | **Port**     | `5432`                                                     |
-| **Database** | `render_db_qvd5_8v2e`                                           |
+| **Database** | `render_db_qvd5`                                           |
 | **Username** | `render_db_qvd5_user`                                      |
-| **Password** | `ObMIu2UhnKJ3RunFUnjYkLLTabNDHBAy`                         |
+| **Password** | `HB0wcEoEn2VUfjj49wM48hDYTImke3ha`                         |
 
 ### Database URLs
 
 **Internal URL** (only Render uses it):
 
 ```
-postgresql://render_db_qvd5_user:ObMIu2UhnKJ3RunFUnjYkLLTabNDHBAy@dpg-d4qd9nu3jp1c739fpo3g-a/render_db_qvd5_8v2e
+postgresql://render_db_qvd5_user:HB0wcEoEn2VUfjj49wM48hDYTImke3ha@dpg-d45s9sre5dus73cciigg-a/render_db_qvd5
 ```
 
 **External URL** (use on your local machine or pgAdmin):
 
 ```
-postgresql://render_db_qvd5_user:ObMIu2UhnKJ3RunFUnjYkLLTabNDHBAy@dpg-d4qd9nu3jp1c739fpo3g-a.frankfurt-postgres.render.com/render_db_qvd5_8v2e
+postgresql://render_db_qvd5_user:HB0wcEoEn2VUfjj49wM48hDYTImke3ha@dpg-d45s9sre5dus73cciigg-a.frankfurt-postgres.render.com/render_db_qvd5
 ```
 
 ---
@@ -134,21 +134,21 @@ postgresql://render_db_qvd5_user:ObMIu2UhnKJ3RunFUnjYkLLTabNDHBAy@dpg-d4qd9nu3jp
 2. Right-click **Servers** → **Register** → **Server**
 3. **General tab:** Name: `Render Production`
 4. **Connection tab:**
-   - Host: `dpg-d4qd9nu3jp1c739fpo3g-a.frankfurt-postgres.render.com`
+   - Host: `dpg-d45s9sre5dus73cciigg-a.frankfurt-postgres.render.com`
    - Port: `5432`
-   - Database: `render_db_qvd5_8v2e`
+   - Database: `render_db_qvd5`
    - Username: `render_db_qvd5_user`
-   - Password: `ObMIu2UhnKJ3RunFUnjYkLLTabNDHBAy`
+   - Password: `HB0wcEoEn2VUfjj49wM48hDYTImke3ha`
 5. **SSL tab:** SSL mode: `Require`
 6. Click **Save**
 
 ### Create tables and add content
 
-1. Select the database in pgAdmin
+1.Select the database in pgAdmin
 2. Open Query Tool
 3. Paste SQL commands to create tables and insert data
 
-```sql
+```bash
 CREATE TABLE appuser (
 	user_id	 BIGSERIAL NOT NULL,
 	username VARCHAR(512) NOT NULL,
@@ -175,22 +175,32 @@ CREATE TABLE rating (
 	PRIMARY KEY(rating_id)
 );
 
+CREATE TABLE recommendation (
+	rec_id		 BIGSERIAL NOT NULL,
+	predicted_score FLOAT(8),
+	movie_movie_id	 BIGINT NOT NULL,
+	appuser_user_id BIGINT NOT NULL,
+	PRIMARY KEY(rec_id)
+);
+
 ALTER TABLE appuser ADD UNIQUE (username, email);
 ALTER TABLE rating ADD CONSTRAINT rating_fk1 FOREIGN KEY (movie_movie_id) REFERENCES movie(movie_id);
 ALTER TABLE rating ADD CONSTRAINT rating_fk2 FOREIGN KEY (appuser_user_id) REFERENCES appuser(user_id);
+ALTER TABLE recommendation ADD CONSTRAINT recommendation_fk1 FOREIGN KEY (movie_movie_id) REFERENCES movie(movie_id);
+ALTER TABLE recommendation ADD CONSTRAINT recommendation_fk2 FOREIGN KEY (appuser_user_id) REFERENCES appuser(user_id);
 ```
 
 4. Click the **Execute/Refresh** button
 5. To insert data, open a new Query Tool and paste SQL INSERT commands
 
-```sql
+```bash
 -- =====================
 -- USERS
 -- =====================
 INSERT INTO appuser (username, email, password, is_admin) VALUES
 ('john_doe', 'john@example.com', 'hashed_password_123', FALSE),
 ('jane_smith', 'jane@example.com', 'hashed_password_456', FALSE),
-('admin_user', 'admin@admin', 'hashed_password_789', TRUE);
+('admin_user', 'admin@admin', 'hashed_password_789', TRUE),
 
 -- =====================
 -- MOVIES
@@ -221,7 +231,22 @@ INSERT INTO rating (score, created_at, movie_movie_id, appuser_user_id) VALUES
 (10.0, '2024-01-20', 1, 2),
 (7.5, '2024-01-21', 4, 2),
 (9.0, '2024-01-22', 6, 2),
-(8.5, '2024-02-05', 7, 2);
+(8.5, '2024-02-05', 7, 2),
+
+
+-- =====================
+-- RECOMMENDATIONS
+-- =====================
+INSERT INTO recommendation (predicted_score, movie_movie_id, appuser_user_id) VALUES
+-- Recommendations for John
+(9.2, 4, 1),
+(8.8, 7, 1),
+(8.5, 10, 1),
+
+-- Recommendations for Jane
+(9.0, 2, 2),
+(8.7, 3, 2),
+(9.1, 8, 2),
 ```
 
 6. Click the **Execute/Refresh** button
@@ -236,7 +261,7 @@ You can test the Render database from your local machine without deploying.
 
 ```env
 # Connect to Render database from local machine
-DATABASE_URL=postgresql://render_db_qvd5_user:ObMIu2UhnKJ3RunFUnjYkLLTabNDHBAy@dpg-d4qd9nu3jp1c739fpo3g-a.frankfurt-postgres.render.com/render_db_qvd5_8v2e
+DATABASE_URL=postgresql://render_db_qvd5_user:HB0wcEoEn2VUfjj49wM48hDYTImke3ha@dpg-d45s9sre5dus73cciigg-a.frankfurt-postgres.render.com/render_db_qvd5
 
 DEBUG=true
 ```
@@ -284,7 +309,7 @@ else:
 | I want to...                | Set in `.env`                                           |
 | --------------------------- | --------------------------------------------------------- |
 | Use local database          | Remove `DATABASE_URL`, set `DB_HOST=localhost`, etc.  |
-| Use Render database locally | Set `DATABASE_URL=postgresql://render...` (External URL) |
+| Use Render database locally | Set `DATABASE_URL=postgresql://render...` (External URL |
 
 ---
 
