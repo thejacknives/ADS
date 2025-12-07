@@ -16,7 +16,7 @@ from django.db.models import Count, Avg
 from rest_framework import status
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
-from .models import AppUser, Movie, Rating, Recommendation
+from .models import AppUser, Movie, Rating
 
 
 def _validate_user_payload(username, email, password):
