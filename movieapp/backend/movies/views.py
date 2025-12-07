@@ -18,7 +18,7 @@ from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from .models import AppUser, Movie, Rating, Recommendation
 
-
+#test
 def _validate_user_payload(username, email, password):
     """
     Ensure the required user fields exist and there are no duplicates.
