@@ -12,7 +12,7 @@ from collections import defaultdict
 from django.contrib.auth.hashers import check_password, make_password
 from django.core.exceptions import ValidationError
 from django.core.validators import validate_email
-from django.db.models import Avg
+from django.db.models import Count, Avg
 from rest_framework import status
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
@@ -719,6 +719,261 @@ def list_my_recommendations(request):
             'user_id': user_id,
             'total_recommendations': total_recommendations,
             'recommendations': recommendations_data,
+        },
+        status=status.HTTP_200_OK,
+    )
+
+def _check_user_is_admin(user_id):
+    """
+    Helper to check if user is admin.
+    """
+    try:
+        user = AppUser.objects.get(user_id=user_id)
+    except AppUser.DoesNotExist:
+        return Response(
+            {'error': 'User not found'},
+            status=status.HTTP_404_NOT_FOUND,
+        ), None
+    
+    if not user.is_admin:
+        return Response(
+            {'error': 'Admin privileges required'},
+            status=status.HTTP_403_FORBIDDEN,
+        ), None
+    
+    return None, user
+
+@api_view(['POST'])
+def admin_add_movie(request):
+    """
+    Admin endpoint to add a new movie.
+    """
+
+    # check if user is logged in
+    error_response, user_id = _check_user_logged_in(request)
+    if error_response:
+        return error_response
+    
+    # validate movie data
+    title = request.data.get('title')
+    genre = request.data.get('genre')
+    description = request.data.get('description')
+
+    if not title or not genre or not description:
+        return Response(
+            {'error': 'Title, genre, and description are required'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+    
+    # validate length constraints
+    if len(title) > 512:
+        return Response(
+            {'error': 'Title must be 512 characters or less'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+    
+    if len(genre) > 512:
+        return Response(
+            {'error': 'Genre must be 512 characters or less'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+    
+    if len(description) > 512:
+        return Response(
+            {'error': 'Description must be 512 characters or less'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+    
+    # check if user is admin
+    error_response, user = _check_user_is_admin(user_id)
+    if error_response:
+        return error_response
+    
+    # create the movie
+    movie = Movie.objects.create(
+        title=title,
+        genre=genre,
+        description=description,
+    )
+    return Response(
+        {
+            'message': 'Movie added successfully',
+            'movie': {
+                'movie_id': movie.movie_id,
+                'title': movie.title,
+                'genre': movie.genre,
+                'description': movie.description,
+            },
+        },
+        status=status.HTTP_201_CREATED,
+    )
+
+@api_view(['PUT'])
+def admin_edit_movie(request, movie_id):
+    """
+    Admin endpoint to edit an existing movie.
+    """
+    # check if user is logged in
+    error_response, user_id = _check_user_logged_in(request)
+    if error_response:
+        return error_response
+    
+    # check if the movie exists
+    try:
+        movie = Movie.objects.get(movie_id=movie_id)
+    except Movie.DoesNotExist:
+        return Response(
+            {'error': 'Movie not found'},
+            status=status.HTTP_404_NOT_FOUND,
+        )
+    
+    # check if user is admin
+    error_response, user = _check_user_is_admin(user_id)
+    if error_response:
+        return error_response
+    
+    # validate movie data
+    title = request.data.get('title')
+    genre = request.data.get('genre')
+    description = request.data.get('description')
+
+    if not title or not genre or not description:
+        return Response(
+            {'error': 'Title, genre, and description are required'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+    
+    # validate length constraints
+    if len(title) > 512:
+        return Response(
+            {'error': 'Title must be 512 characters or less'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+    
+    if len(genre) > 512:
+        return Response(
+            {'error': 'Genre must be 512 characters or less'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+    
+    if len(description) > 512:
+        return Response(
+            {'error': 'Description must be 512 characters or less'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+    
+    # update the movie
+    movie.title = title
+    movie.genre = genre
+    movie.description = description
+    movie.save()
+
+    return Response(
+        {
+            'message': 'Movie updated successfully',
+            'movie': {
+                'movie_id': movie.movie_id,
+                'title': movie.title,
+                'genre': movie.genre,
+                'description': movie.description,
+            },
+        },
+        status=status.HTTP_200_OK,
+    )
+
+
+@api_view(['DELETE'])
+def admin_delete_movie(request, movie_id):
+    """
+    Admin endpoint to delete an existing movie.
+    """
+    # check if user is logged in
+    error_response, user_id = _check_user_logged_in(request)
+    if error_response:
+        return error_response
+    
+    # check if the movie exists
+    try:
+        movie = Movie.objects.get(movie_id=movie_id)
+    except Movie.DoesNotExist:
+        return Response(
+            {'error': 'Movie not found'},
+            status=status.HTTP_404_NOT_FOUND,
+        )
+    
+    # check if user is admin
+    error_response, user = _check_user_is_admin(user_id)
+    if error_response:
+        return error_response
+    
+    # delete the movie
+    movie.delete()
+
+    return Response(
+        {'message': 'Movie deleted successfully'},
+        status=status.HTTP_204_NO_CONTENT,
+    )
+
+@api_view(['GET'])
+def system_statistics(request):
+    """
+    Admin endpoint to retrieve system statistics (number of users, movies, ratings, 
+    top movies with most ratings and top movies with most average rating).
+    """
+
+    # check if user is logged in
+    error_response, user_id = _check_user_logged_in(request)
+    if error_response:
+        return error_response
+    
+    # check if user is admin
+    error_response, user = _check_user_is_admin(user_id)
+    if error_response:
+        return error_response
+    
+    # statistics
+    total_users = AppUser.objects.count()
+    total_movies = Movie.objects.count()
+    total_ratings = Rating.objects.count()
+
+    # top movies with most ratings
+    top_movies_most_ratings = Movie.objects.annotate(
+        num_ratings=Count('ratings')
+    ).order_by('-num_ratings')[:5]
+
+    top_movies_most_ratings_data = []
+    for movie in top_movies_most_ratings:
+        top_movies_most_ratings_data.append({
+            'movie_id': movie.movie_id,
+            'title': movie.title,
+            'genre': movie.genre,
+            'description': movie.description,
+            'num_ratings': movie.num_ratings,
+        })
+
+    # top movies with highest average rating
+    top_movies_highest_avg = Movie.objects.annotate(
+        avg_rating=Avg('ratings__score')
+    ).filter(avg_rating__isnull=False).order_by('-avg_rating')[:5]
+
+    top_movies_highest_avg_data = []
+    for movie in top_movies_highest_avg:
+        top_movies_highest_avg_data.append({
+            'movie_id': movie.movie_id,
+            'title': movie.title,
+            'genre': movie.genre,
+            'description': movie.description,
+            'avg_rating': movie.avg_rating,
+        })
+        
+
+    return Response(
+        {
+            'total_users': total_users,
+            'total_movies': total_movies,
+            'total_ratings': total_ratings,
+            'top_movies_most_ratings': top_movies_most_ratings_data,
+            'top_movies_highest_avg': top_movies_highest_avg_data,
         },
         status=status.HTTP_200_OK,
     )
