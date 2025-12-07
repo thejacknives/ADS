@@ -8,6 +8,10 @@ from movies.views import (
     register_user,
     user_list,
     user_recommendations,
+    create_rating,
+    edit_rating,
+    delete_rating,
+    get_movie_ratings,
 )
 
 @csrf_exempt
@@ -22,4 +26,8 @@ urlpatterns = [
     path("api/auth/register/", register_user),
     path("api/auth/login/", login_user),
     path("api/auth/logout/", logout_user),
+    path("api/ratings/<int:movie_id>/", create_rating),
+    path("api/ratings/<int:movie_id>/edit/", edit_rating),
+    path("api/ratings/<int:movie_id>/delete/", delete_rating),
+    path("api/movies/<int:movie_id>/ratings/", get_movie_ratings),
 ]

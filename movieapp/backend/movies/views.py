@@ -397,3 +397,239 @@ def user_recommendations(request, user_id):
             'recommendations': response_payload,
         }
     )
+
+def _check_user_logged_in(request):
+    """
+    Helper to check if user is logged in.
+    """
+    user_id = request.session.get('user_id')
+    if not user_id:
+        return Response(
+            {'error': 'Authentication required'},
+            status=status.HTTP_401_UNAUTHORIZED,
+        ), None
+    return None, user_id
+
+@api_view(['POST'])
+def create_rating(request, movie_id):
+    """
+    Create a new rating for a movie based on a scale of 1-5.
+    """
+
+    # check if user is logged in
+    error_response, user_id = _check_user_logged_in(request)
+    if error_response:
+        return error_response
+    
+    # check if the movie exists
+    if not Movie.objects.filter(movie_id=movie_id).exists():
+        return Response(
+            {'error': 'Movie not found'},
+            status=status.HTTP_404_NOT_FOUND,
+        )
+    
+    # check if rating value is between 1 and 5
+    rating_value = request.data.get('rating')
+    
+    if rating_value is None:
+        return Response(
+            {'error': 'Rating is required'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+    
+    try:
+        rating_int = int(rating_value)
+    except (ValueError, TypeError):
+        return Response(
+            {'error': 'Rating must be a valid integer'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+    
+    if not (1 <= rating_int <= 5):
+        return Response(
+            {'error': 'Rating must be between 1 and 5'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+    
+    # check if user has already rated this movie
+    if Rating.objects.filter(user_id=user_id, movie_id=movie_id).exists():
+        return Response(
+            {'error': 'You have already rated this movie'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+    
+    # save the new rating
+    rating = Rating.objects.create(
+        score=rating_int,
+        movie_id=movie_id,
+        user_id=user_id,
+    )
+    return Response(
+        {
+            'message': 'Rating created successfully',
+            'rating': {
+                'score': rating.score,
+                'created_at': rating.created_at,
+                'movie_id': rating.movie_id,
+                'user_id': rating.user_id,
+            },
+        },
+        status=status.HTTP_201_CREATED,
+    )
+
+@api_view(['GET'])
+def get_movie_ratings(request, movie_id):
+    """
+    Retrieve all ratings for a specific movie.
+    """
+
+    # check if the movie exists
+    if not Movie.objects.filter(movie_id=movie_id).exists():
+        return Response(
+            {'error': 'Movie not found'},
+            status=status.HTTP_404_NOT_FOUND,
+        )
+    
+    # get all ratings
+    ratings = Rating.objects.filter(movie_id=movie_id)
+
+    if not ratings.exists():
+        return Response(
+            {
+                'movie_id': movie_id,
+                'total_ratings': 0,
+                'average_rating': 0,
+                'ratings': [],
+            },
+            status=status.HTTP_200_OK,
+        )
+    
+    # convert django object to json
+    ratings_data = []
+    for rating in ratings:
+        ratings_data.append({
+            'rating_id': rating.rating_id,
+            'score': rating.score,
+            'created_at': rating.created_at,
+            'user_id': rating.user_id,
+        })
+
+    # stats
+    total_ratings = ratings.count()
+    average_rating = sum(rating.score for rating in ratings) / total_ratings
+
+    return Response(
+        {
+            'movie_id': movie_id,
+            'total_ratings': total_ratings,
+            'average_rating': average_rating,
+            'ratings': ratings_data,
+        },
+        status=status.HTTP_200_OK,
+    )
+
+@api_view(['PUT'])
+def edit_rating(request, rating_id):
+    """
+    Edit an existing rating.
+    """
+
+    # check if user is logged in
+    error_response, user_id = _check_user_logged_in(request)
+    if error_response:
+        return error_response
+    
+    # check if the rating exists
+    if not Rating.objects.filter(rating_id=rating_id).exists():
+        return Response(
+            {'error': 'Rating not found'},
+            status=status.HTTP_404_NOT_FOUND,
+        )
+    
+    # check if user is the owner of the rating
+    rating = Rating.objects.get(rating_id=rating_id)
+    if rating.user_id != user_id:
+        return Response(
+            {'error': 'You do not have permission to edit this rating'},
+            status=status.HTTP_403_FORBIDDEN,
+        )
+    
+    # check if rating value is between 1 and 5 and if it's different
+    rating_value = request.data.get('rating')
+    
+    if rating_value is None:
+        return Response(
+            {'error': 'Rating is required'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+    
+    try:
+        rating_int = int(rating_value)
+    except (ValueError, TypeError):
+        return Response(
+            {'error': 'Rating must be a valid integer'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+    
+    if not (1 <= rating_int <= 5):
+        return Response(
+            {'error': 'Rating must be between 1 and 5'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+    
+    if rating.score == rating_int:
+        return Response(
+            {'error': 'New rating must be different from the current rating'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+    
+    # update the rating
+    rating.score = rating_int
+    rating.save()
+
+    return Response(
+        {
+            'message': 'Rating updated successfully',
+            'rating': {
+                'rating_id': rating.rating_id,
+                'score': rating.score,
+                'created_at': rating.created_at,
+                'user_id': rating.user_id,
+            },
+        },
+        status=status.HTTP_200_OK,
+    )
+
+@api_view(['DELETE'])
+def delete_rating(request, rating_id):
+    """
+    Delete an existing rating.
+    """
+
+    # check if user is logged in
+    error_response, user_id = _check_user_logged_in(request)
+    if error_response:
+        return error_response
+    
+    # check if the rating exists
+    if not Rating.objects.filter(rating_id=rating_id).exists():
+        return Response(
+            {'error': 'Rating not found'},
+            status=status.HTTP_404_NOT_FOUND,
+        )
+    
+    # check if user is the owner of the rating
+    rating = Rating.objects.get(rating_id=rating_id)
+    if rating.user_id != user_id:
+        return Response(
+            {'error': 'You do not have permission to delete this rating'},
+            status=status.HTTP_403_FORBIDDEN,
+        )
+    
+    # delete the rating
+    rating.delete()
+
+    return Response(
+        {'message': 'Rating deleted successfully'},
+        status=status.HTTP_204_NO_CONTENT,
+    )
