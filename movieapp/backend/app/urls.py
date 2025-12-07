@@ -12,6 +12,8 @@ from movies.views import (
     edit_rating,
     delete_rating,
     get_movie_ratings,
+    list_my_ratings,
+    list_my_recommendations,
 )
 
 @csrf_exempt
@@ -30,4 +32,6 @@ urlpatterns = [
     path("api/ratings/<int:movie_id>/edit/", edit_rating),
     path("api/ratings/<int:movie_id>/delete/", delete_rating),
     path("api/movies/<int:movie_id>/ratings/", get_movie_ratings),
+    path("api/ratings/mine/", list_my_ratings),
+    path("api/recommendations/mine/", list_my_recommendations),
 ]
