@@ -977,3 +977,145 @@ def system_statistics(request):
         },
         status=status.HTTP_200_OK,
     )
+
+
+def _serialize_movie(movie, include_details=False):
+    """Serialize movie object"""
+    data = {
+        'id': movie.movie_id,
+        'title': movie.title,
+        'genre': movie.genre,
+        'year': movie.year,
+        'average_rating': movie.average_rating,
+        'rating_count': movie.rating_count,
+    }
+    
+    if include_details:
+        data.update({
+            'director': movie.director,
+            'description': movie.description,
+            'poster_url': movie.poster_url,
+        })
+    
+    return data
+
+
+def _serialize_rating_with_movie(rating):
+    """Serialize rating object with movie info"""
+    return {
+        'id': rating.rating_id,
+        'score': rating.score,
+        'created_at': rating.created_at.isoformat(),
+        'movie': {
+            'id': rating.movie.movie_id,
+            'title': rating.movie.title,
+            'genre': rating.movie.genre,
+            'year': rating.movie.year,
+        }
+    }
+
+
+def _serialize_recommendation_with_movie(rec):
+    """Serialize recommendation object with movie info"""
+    return {
+        'id': rec.rec_id,
+        'predicted_score': rec.predicted_score,
+        'movie': _serialize_movie(rec.movie, include_details=True)
+    }
+
+
+def _get_authenticated_user_obj(request):
+    """Get the currently authenticated user object (not just ID)"""
+    user_id = request.session.get('user_id')
+    if not user_id:
+        return None
+    try:
+        return AppUser.objects.get(user_id=user_id)
+    except AppUser.DoesNotExist:
+        return None
+    
+@api_view(['GET', 'PUT'])
+def user_profile(request):
+    """
+    GET /api/profile/ -> View profile
+    PUT /api/profile/ -> Update profile
+    """
+    user = _get_authenticated_user_obj(request)
+    if not user:
+        return Response(
+            {'error': 'Authentication required'},
+            status=status.HTTP_401_UNAUTHORIZED
+        )
+    
+    if request.method == 'GET':
+        return Response(_serialize_user(user))
+    
+    # PUT - Update profile
+    username = request.data.get('username')
+    email = request.data.get('email')
+    
+    if username and username != user.username:
+        if not re.fullmatch(r"[A-Za-z0-9_]+", username):
+            return Response(
+                {'error': 'Username can only contain letters, numbers, and underscores'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        if AppUser.objects.filter(username=username).exists():
+            return Response(
+                {'error': 'Username already exists'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        user.username = username
+    
+    if email and email != user.email:
+        try:
+            validate_email(email)
+        except ValidationError:
+            return Response(
+                {'error': 'Email is not valid'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        if AppUser.objects.filter(email=email).exists():
+            return Response(
+                {'error': 'Email already exists'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        user.email = email
+    
+    user.save()
+    return Response(_serialize_user(user))
+
+
+@api_view(['GET'])
+def user_rating_history(request):
+    """
+    GET /api/profile/ratings/ -> Get user's rating history
+    """
+    user = _get_authenticated_user_obj(request)
+    if not user:
+        return Response(
+            {'error': 'Authentication required'},
+            status=status.HTTP_401_UNAUTHORIZED
+        )
+    
+    ratings = Rating.objects.filter(user=user).select_related('movie').order_by('-created_at')
+    data = [_serialize_rating_with_movie(r) for r in ratings]
+    return Response(data)
+
+
+@api_view(['GET'])
+def user_recommendation_history(request):
+    """
+    GET /api/profile/recommendations/ -> Get user's recommendation history
+    """
+    user = _get_authenticated_user_obj(request)
+    if not user:
+        return Response(
+            {'error': 'Authentication required'},
+            status=status.HTTP_401_UNAUTHORIZED
+        )
+    
+    recommendations = Recommendation.objects.filter(user=user).select_related('movie').order_by('-rec_id')
+    data = [_serialize_recommendation_with_movie(r) for r in recommendations]
+    return Response(data)
+
