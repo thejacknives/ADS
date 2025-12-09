@@ -4,8 +4,14 @@ import { api } from '../services/api';
 
 export function ApiTester() {
   const [logs, setLogs] = useState<string[]>([]);
+  
+  // Dados para Login
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+
+  // Dados para Registo (Novo)
+  const [newUsername, setNewUsername] = useState('');
+  const [newEmail, setNewEmail] = useState('');
 
   const log = (message: string, data?: any) => {
     const timestamp = new Date().toLocaleTimeString();
@@ -21,6 +27,21 @@ export function ApiTester() {
       log('✅ Login Sucesso!', res);
     } catch (error: any) {
       log('❌ Erro no Login:', error.message);
+    }
+  };
+
+  const handleRegister = async () => {
+    try {
+      log(`⏳ A registar utilizador ${newUsername}...`);
+      // Usa uma password fixa para teste, ou cria um campo se preferires
+      const res = await api.register({ 
+        username: newUsername, 
+        email: newEmail, 
+        password: 'pvaz' 
+      });
+      log('✅ Registo Sucesso! Podes fazer login agora.', res);
+    } catch (error: any) {
+      log('❌ Erro no Registo:', error.message);
     }
   };
 
@@ -43,18 +64,35 @@ export function ApiTester() {
   };
 
   return (
-    <div style={{ padding: '20px', backgroundColor: '#f0f0f0', border: '2px dashed #333' }}>
-      <h2>🛠️ Área de Testes da API</h2>
-      <div style={{ marginBottom: '15px' }}>
-        <input placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} style={{ marginRight: '5px' }} />
-        <input placeholder="Password" type="password" value={password} onChange={e => setPassword(e.target.value)} style={{ marginRight: '5px' }} />
-        <button onClick={handleLogin}>Testar Login</button>
+    <div style={{ padding: '20px', backgroundColor: '#f0f0f0', border: '2px dashed #333', marginBottom: '20px' }}>
+      <h2>🛠️ Área de Testes da API (V2)</h2>
+      
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '20px' }}>
+        
+        {/* Coluna 1: Login */}
+        <div style={{ border: '1px solid #ccc', padding: '10px', backgroundColor: '#fff' }}>
+          <h3>🔑 Testar Login</h3>
+          <input placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} style={{ display: 'block', marginBottom: '5px', width: '90%' }} />
+          <input placeholder="Password" type="password" value={password} onChange={e => setPassword(e.target.value)} style={{ display: 'block', marginBottom: '5px', width: '90%' }} />
+          <button onClick={handleLogin} style={{ backgroundColor: '#4CAF50', color: 'white' }}>Entrar</button>
+          <button onClick={handleLogout} style={{ marginLeft: '5px', backgroundColor: '#f44336', color: 'white' }}>Sair</button>
+        </div>
+
+        {/* Coluna 2: Registo */}
+        <div style={{ border: '1px solid #ccc', padding: '10px', backgroundColor: '#fff' }}>
+          <h3>📝 Testar Registo</h3>
+          <input placeholder="Novo Username" value={newUsername} onChange={e => setNewUsername(e.target.value)} style={{ display: 'block', marginBottom: '5px', width: '90%' }} />
+          <input placeholder="Novo Email" value={newEmail} onChange={e => setNewEmail(e.target.value)} style={{ display: 'block', marginBottom: '5px', width: '90%' }} />
+          <button onClick={handleRegister} style={{ backgroundColor: '#2196F3', color: 'white' }}>Criar Conta</button>
+          <small style={{ display: 'block', marginTop: '5px' }}>(Password será: PasswordTeste123)</small>
+        </div>
       </div>
-      <div style={{ display: 'flex', gap: '10px', marginBottom: '20px' }}>
+
+      <div style={{ marginBottom: '10px' }}>
         <button onClick={handleGetRatings}>Testar "Meus Ratings"</button>
-        <button onClick={handleLogout} style={{ backgroundColor: '#ffcccc' }}>Testar Logout</button>
       </div>
-      <div style={{ backgroundColor: '#1e1e1e', color: '#00ff00', padding: '10px', borderRadius: '5px', height: '300px', overflowY: 'auto', fontFamily: 'monospace', fontSize: '12px' }}>
+
+      <div style={{ backgroundColor: '#1e1e1e', color: '#00ff00', padding: '10px', borderRadius: '5px', height: '200px', overflowY: 'auto', fontFamily: 'monospace', fontSize: '12px' }}>
         {logs.length === 0 ? <p>// Resultados aparecem aqui...</p> : logs.map((l, i) => (
           <div key={i} style={{ borderBottom: '1px solid #333', padding: '5px 0', whiteSpace: 'pre-wrap' }}>{l}</div>
         ))}

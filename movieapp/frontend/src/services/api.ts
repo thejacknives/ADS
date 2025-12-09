@@ -1,6 +1,6 @@
 // src/services/api.ts
 
-const API_BASE_URL = 'http://127.0.0.1:8000/api';
+const API_BASE_URL = '/api';
 
 async function request(endpoint: string, options: RequestInit = {}) {
   const defaultHeaders = {
