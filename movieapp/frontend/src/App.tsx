@@ -175,8 +175,8 @@ function App() {
   return (
     <BrowserRouter>
       {/* --- MODO DE TESTE ATIVO --- */}
-      <ApiTester />
-      <hr />
+      {/* <ApiTester /> */}
+      {/* <hr />  */}
       {/* --------------------------- */} 
       <Navbar />
 
