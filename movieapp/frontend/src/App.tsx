@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+/*import { useEffect, useState } from 'react'
 
 export default function App() {
 
@@ -158,4 +158,33 @@ export default function App() {
       )}
     </div>
   )
+}*/
+
+
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { Login } from './pages/Login';
+import { ApiTester } from './components/ApiTester'; // <--- Importa aqui
+
+// Placeholder
+const MoviesPage = () => <h2>🍿 Página de Filmes</h2>;
+const RegisterPage = () => <h2>📝 Página de Registo</h2>;
+
+function App() {
+  return (
+    <BrowserRouter>
+      {/* --- MODO DE TESTE ATIVO --- */}
+      <ApiTester /> 
+      <hr />
+      {/* --------------------------- */}
+
+      <Routes>
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<RegisterPage />} />
+        <Route path="/movies" element={<MoviesPage />} />
+        <Route path="/" element={<Navigate to="/login" replace />} />
+      </Routes>
+    </BrowserRouter>
+  );
 }
+
+export default App;
