@@ -743,6 +743,31 @@ def _check_user_is_admin(user_id):
     
     return None, user
 
+@api_view(['GET'])
+def get_movie_details(request, movie_id):
+    """
+    Retorna os detalhes de um filme específico.
+    Se não encontrar, devolve um JSON de erro padrão.
+    """
+    try:
+        movie = Movie.objects.get(pk=movie_id)
+        
+        return Response({
+            "id": movie.movie_id,
+            "title": movie.title,
+            "year": movie.year,
+            "genre": movie.genre,
+            "poster_url": movie.poster_url,
+            "description": movie.description
+        })
+        
+    except Movie.DoesNotExist:
+        # Erro padrão que o teu api.ts consegue ler
+        return Response(
+            {'error': 'Filme não encontrado'}, 
+            status=404
+        )
+
 @api_view(['POST'])
 def admin_add_movie(request):
     """

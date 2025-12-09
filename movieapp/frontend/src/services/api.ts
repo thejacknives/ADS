@@ -46,6 +46,9 @@ export const api = {
   getMyRatings: () => 
     request('/ratings/mine/'),
 
+  getMovie: (id: number) => 
+    request(`/movies/${id}/`),
+
   // --- O RESTO (Para o teu colega usar depois) ---
   getMovies: (endpoint: string) => request(endpoint), // Genérico
 };
