@@ -1119,3 +1119,46 @@ def user_recommendation_history(request):
     data = [_serialize_recommendation_with_movie(r) for r in recommendations]
     return Response(data)
 
+
+@api_view(['GET'])
+def movie_list(request):
+    """
+    GET /api/movies/ -> List all movies
+    """
+    movies = Movie.objects.all().order_by('title')
+    data = [_serialize_movie(m) for m in movies]
+    
+    return Response({
+        'movies': data,
+        'total': movies.count(),
+    })
+
+
+@api_view(['GET'])
+def movie_detail(request, movie_id):
+    """
+    GET /api/movies/<id>/ -> Get detailed movie information
+    """
+    try:
+        movie = Movie.objects.get(movie_id=movie_id)
+    except Movie.DoesNotExist:
+        return Response(
+            {'error': 'Movie not found'},
+            status=status.HTTP_404_NOT_FOUND
+        )
+    
+    data = _serialize_movie(movie, include_details=True)
+    
+    # Add user's rating if authenticated
+    user = _get_authenticated_user_obj(request)
+    if user:
+        try:
+            user_rating = Rating.objects.get(user=user, movie=movie)
+            data['user_rating'] = user_rating.score
+            data['user_rating_id'] = user_rating.rating_id
+        except Rating.DoesNotExist:
+            data['user_rating'] = None
+            data['user_rating_id'] = None
+    
+    return Response(data)
+

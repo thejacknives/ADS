@@ -21,6 +21,8 @@ from movies.views import (
     user_profile,
     user_rating_history,
     user_recommendation_history,
+    movie_list,
+    movie_detail,
 )
 
 @csrf_exempt
@@ -48,4 +50,7 @@ urlpatterns = [
     path("api/profile/", user_profile),
     path("api/profile/ratings/", user_rating_history),
     path("api/profile/recommendations/", user_recommendation_history),
+    path("api/movies/", movie_list),
+    path("api/movies/<int:movie_id>/", movie_detail),
+    
 ]
