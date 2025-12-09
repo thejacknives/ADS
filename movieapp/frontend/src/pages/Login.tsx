@@ -17,8 +17,11 @@ export function Login() {
     setLoading(true);
 
     try {
-      await api.login({ email, password });
-      navigate('/movies'); 
+      const data = await api.login({ email, password }); 
+      if (data.user && data.user.username) {
+        localStorage.setItem('movieapp_user', data.user.username);
+      }
+      navigate('/movies');
     } catch (err: any) {
       setError(err.message || 'Erro ao entrar');
     } finally {

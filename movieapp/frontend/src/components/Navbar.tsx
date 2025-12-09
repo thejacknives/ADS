@@ -45,7 +45,7 @@ export function Navbar() {
       <div style={{ display: 'flex', gap: '15px', alignItems: 'center' }}>
         {username ? (
           <>
-            <span style={{ fontWeight: 'bold' }}>Olá, {username}</span>
+            <span style={{ fontWeight: 'bold' }}> {username}</span>
             <button 
               onClick={handleLogout} 
               style={{
