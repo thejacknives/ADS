@@ -163,6 +163,8 @@ export default function App() {
 
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Login } from './pages/Login';
+import { Register } from './pages/Register';
+import { Navbar } from './components/Navbar';
 import { ApiTester } from './components/ApiTester'; // <--- Importa aqui
 
 // Placeholder
@@ -173,13 +175,14 @@ function App() {
   return (
     <BrowserRouter>
       {/* --- MODO DE TESTE ATIVO --- */}
-      <ApiTester /> 
+      <ApiTester />
       <hr />
-      {/* --------------------------- */}
+      {/* --------------------------- */} 
+      <Navbar />
 
       <Routes>
         <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<RegisterPage />} />
+        <Route path="/register" element={<Register />} />
         <Route path="/movies" element={<MoviesPage />} />
         <Route path="/" element={<Navigate to="/login" replace />} />
       </Routes>
