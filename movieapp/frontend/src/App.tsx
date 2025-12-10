@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+/*import { useEffect, useState } from 'react'
 
 export default function App() {
 
@@ -158,4 +158,38 @@ export default function App() {
       )}
     </div>
   )
+}*/
+
+
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { Login } from './pages/Login';
+import { Register } from './pages/Register';
+import { Navbar } from './components/Navbar';
+import { ApiTester } from './components/ApiTester'; // <--- Importa aqui
+import MovieDetails from './pages/MovieDetails';
+import MovieRating from './pages/MovieRating';
+import Home from "./pages/Home";
+import { MyRatings } from './pages/MyRatings';
+
+// Placeholder
+const MoviesPage = () => <h2>🍿 Página de Filmes</h2>;
+const RegisterPage = () => <h2>📝 Página de Registo</h2>;
+
+function App() {
+  return (
+    <BrowserRouter>
+      <Navbar />
+      <Routes>
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
+        <Route path="/movies" element={<Home />} />
+        <Route path="/movies/:movieId" element={<MovieDetails />} />
+        <Route path="/movies/:movieId/ratings" element={<MovieRating />} />
+        <Route path="/" element={<Navigate to="/movies" replace />} />
+        <Route path="/my-ratings" element={<MyRatings />} />
+      </Routes>
+    </BrowserRouter>
+  );
 }
+
+export default App;
