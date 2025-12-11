@@ -40,6 +40,8 @@ export const api = {
   // Devolve { user_id, ratings: [{ rating_id, score, movie_id, ... }] }
   getMyRatings: () => request('/ratings/mine/'),
 
+  getMyRatingsDetails: () => request('/ratings/mine/details/'),
+
   getMovies: () => request('/movies/'),
 
   searchMovies: (params: SearchParams) => {
