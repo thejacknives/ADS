@@ -2,25 +2,25 @@ import { useEffect, useState } from 'react';
 import { api } from '../services/api';
 import { Link } from 'react-router-dom';
 
-interface Rating {
-  id: number;
-  movie?: number;
-  movie_id?: number;
-  score: number;
-  review?: string;
-  created_at?: string;
-}
-
+// 1. Interfaces atualizadas para a estrutura aninhada (Server-Side Join)
 interface MovieDetails {
   id: number;
   title: string;
-  year?: number;
-  genre?: string;
+  year: number;
+  genre: string;
   poster_url?: string;
   description?: string;
+  director?: string;
 }
 
-// --- Componente de Estrela ---
+interface Rating {
+  rating_id: number;
+  score: number;
+  created_at?: string;
+  movie: MovieDetails; // <--- O filme vem completo aqui dentro
+}
+
+// --- Componentes de Estrela ---
 function StarIcon({ fill }: { fill: number }) {
   return (
     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" className="star-icon">
@@ -50,66 +50,42 @@ function StarRating({ score }: { score: number }) {
 
 export function MyRatings() {
   const [ratings, setRatings] = useState<Rating[]>([]);
-  const [moviesCache, setMoviesCache] = useState<Record<number, MovieDetails>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  
-  // NOVO: Estado para controlar o modo de edição
   const [editMode, setEditMode] = useState(false);
 
   useEffect(() => {
-    loadRatingsAndMovies();
+    loadRatings();
   }, []);
 
-  const loadRatingsAndMovies = async () => {
+  const loadRatings = async () => {
     try {
-      const data = await api.getMyRatings();
-      const listaRatings = Array.isArray(data) ? data : (data.ratings || []);
-      setRatings(listaRatings.reverse());
-
-      const movieIds = [...new Set(listaRatings.map((r: Rating) => r.movie || r.movie_id))];
-      const newMoviesCache: Record<number, MovieDetails> = {};
-      
-      await Promise.all(
-        movieIds.map(async (id) => {
-          if (!id) return;
-          try {
-            const movieData = await api.getMovie(id as number);
-            newMoviesCache[id as number] = movieData;
-          } catch (e) {
-            newMoviesCache[id as number] = { id: id as number, title: `Filme #${id}` };
-          }
-        })
-      );
-      setMoviesCache(newMoviesCache);
-
+      setLoading(true);
+      // Chama o endpoint "PESADO" que traz os detalhes todos (Capa, Director, etc)
+      const data = await api.getMyRatingsDetails();
+      const lista = Array.isArray(data) ? data : (data.ratings || []);
+      setRatings(lista);
     } catch (err: any) {
-      setError('Sessão expirada ou erro de ligação.');
+      console.error(err);
+      setError('Não foi possível carregar as avaliações.');
     } finally {
       setLoading(false);
     }
   };
 
-  // Simulação de clique no editar (futuramente abre modal)
-  const handleEditClick = (movieTitle: string) => {
-    alert(`Editar review de "${movieTitle}"? \n(Esta funcionalidade será ligada ao endpoint de update em breve)`);
-  };
-
-  if (loading) return <div style={{textAlign: 'center', marginTop: '100px'}}>⏳ A carregar a tua biblioteca...</div>;
+  if (loading) return <div style={{textAlign: 'center', marginTop: '100px'}}>⏳ A carregar as tuas notas...</div>;
 
   return (
     <div style={{ width: '100%', padding: '0 40px', boxSizing: 'border-box' }}>
       
+      {/* HEADER */}
       <header style={{ 
         display: 'flex', justifyContent: 'space-between', alignItems: 'center', 
-        marginBottom: '2rem', maxWidth: '90%', margin: '0 auto 2rem auto' 
+        marginBottom: '2rem', maxWidth: '1400px', margin: '0 auto 2rem auto' 
       }}>
-        <h2>As Minhas Avaliações</h2>
+        <h2>⭐ As Minhas Avaliações</h2>
         
-        {/* NOVO GRUPO DE BOTÕES */}
         <div style={{ display: 'flex', gap: '1rem' }}>
-          
-          {/* Botão de Alterar (Toggle Edit Mode) */}
           <button 
             className="btn btn-outline" 
             onClick={() => setEditMode(!editMode)}
@@ -119,10 +95,8 @@ export function MyRatings() {
               color: editMode ? '#d97706' : undefined
             }}
           >
-            {editMode ? 'Concluir Edição' : 'Alterar Review'}
+            {editMode ? 'Concluir' : 'Gerir Avaliações'}
           </button>
-
-          {/* Botão de Adicionar */}
           <Link to="/movies" className="btn btn-primary">Avaliar Novo Filme</Link>
         </div>
       </header>
@@ -132,18 +106,17 @@ export function MyRatings() {
       {ratings.length === 0 && !error ? (
         <div style={{textAlign: 'center', padding: '4rem', background: 'white', borderRadius: '12px', border: '1px dashed #cbd5e1', maxWidth: '1400px', margin: '0 auto'}}>
           <h3 style={{color: '#64748b'}}>Ainda sem avaliações 🍿</h3>
-          <p>Começa a dar notas aos teus filmes favoritos!</p>
+          <p>Vai ao menu Filmes para começares a tua coleção!</p>
         </div>
       ) : (
         <div className="ratings-list">
           {ratings.map((rating) => {
-            const movieId = rating.movie || rating.movie_id;
-            const movie = movieId ? moviesCache[movieId] : null;
+            const movie = rating.movie; 
 
             return (
-              <div key={rating.id} className={`rating-row ${editMode ? 'editing' : ''}`}>
+              <div key={rating.rating_id} className={`rating-row ${editMode ? 'editing' : ''}`}>
                 
-                {/* Lado Esquerdo */}
+                {/* LADO ESQUERDO: Poster e Info */}
                 <div style={{ display: 'flex', alignItems: 'flex-start', gap: '20px', flex: 1 }}>
                   <div className="movie-poster">
                     {movie?.poster_url ? (
@@ -154,52 +127,56 @@ export function MyRatings() {
                   </div>
                   
                   <div style={{ paddingRight: '20px' }}>
-                    <h3 className="movie-title">{movie ? movie.title : `A carregar...`}</h3>
-                    <div style={{ display: 'flex', gap: '8px', fontSize: '0.85rem', color: '#64748b', marginTop: '4px', fontWeight: 500 }}>
-                      {movie?.year && <span className="meta-tag">{movie.year}</span>}
-                      {movie?.genre && <span className="meta-tag">{movie.genre}</span>}
+                    <h3 className="movie-title">{movie.title}</h3>
+                    
+                    {/* Tags Cinzentas (Consistente com Movies.tsx) */}
+                    <div style={{ display: 'flex', gap: '8px', fontSize: '0.85rem', color: '#64748b', marginTop: '6px', flexWrap: 'wrap' }}>
+                      <span className="tag">{movie.year}</span>
+                      <span className="tag">{movie.genre}</span>
+                      {movie.director && <span className="tag">🎥 {movie.director}</span>}
                     </div>
-                    {movie?.description && (
-                      <p style={{ margin: '8px 0 0 0', fontSize: '0.9rem', color: '#475569', lineHeight: '1.4', maxWidth: '600px', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-                        {movie.description}
-                      </p>
+
+                    {/* Descrição */}
+                    {movie.description && (
+                       <p style={{ 
+                         margin: '10px 0 0 0', 
+                         fontSize: '0.9rem', 
+                         color: '#64748b', 
+                         lineHeight: '1.4',
+                         display: '-webkit-box', 
+                         WebkitLineClamp: 2, 
+                         WebkitBoxOrient: 'vertical', 
+                         overflow: 'hidden' 
+                       }}>
+                         {movie.description}
+                       </p>
                     )}
                   </div>
                 </div>
 
-                {/* Lado Direito: Estrelas e Botão de Editar */}
+                {/* LADO DIREITO: Nota e Data */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
                   
-                  {/* Se Edit Mode estiver ON, mostra botão de editar específico */}
+                  {/* Botão de Remover (Aparece só no Edit Mode) */}
                   {editMode && (
                     <button 
-                      onClick={() => handleEditClick(movie?.title || 'Filme')}
-                      style={{
-                        padding: '8px 12px',
-                        backgroundColor: 'white',
-                        border: '1px solid #cbd5e1',
-                        borderRadius: '8px',
-                        cursor: 'pointer',
-                        color: '#475569',
-                        fontWeight: 600,
-                        fontSize: '0.9rem',
-                        display: 'flex', alignItems: 'center', gap: '5px'
-                      }}
+                      className="btn-delete"
+                      onClick={() => alert('Funcionalidade de eliminar por implementar (chamar api.deleteRating)')}
                     >
-                      ✏️ Editar
+                      🗑️ Remover
                     </button>
                   )}
 
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '6px', minWidth: '120px' }}>
-                    {!editMode && <p style={{ margin: 0, fontSize: '0.9rem', fontWeight: 600, color: '#64748b' }}>Your rating</p>}
                     <StarRating score={rating.score} />
+                    
                     <div style={{display:'flex', flexDirection:'column', alignItems:'flex-end'}}>
-                      <span style={{ fontSize: '1rem', fontWeight: 'bold', color: '#475569' }}>{rating.score} / 5</span>
-                      {!editMode && (
-                        <small style={{ color: '#94a3b8', fontSize: '0.75rem', marginTop: '2px' }}>
-                          {rating.created_at ? new Date(rating.created_at).toLocaleDateString() : ''}
-                        </small>
-                      )}
+                      <span style={{ fontSize: '1.1rem', fontWeight: 'bold', color: '#475569' }}>
+                        {rating.score} / 5
+                      </span>
+                      <small style={{ color: '#94a3b8', fontSize: '0.75rem', marginTop: '2px' }}>
+                         {rating.created_at ? new Date(rating.created_at).toLocaleDateString() : ''}
+                      </small>
                     </div>
                   </div>
                 </div>
@@ -211,7 +188,7 @@ export function MyRatings() {
       )}
 
       <style>{`
-        .ratings-list { display: flex; flex-direction: column; gap: 1rem; width: 90%; max-width: 1400px; margin: 0 auto; }
+        .ratings-list { display: flex; flex-direction: column; gap: 1rem; width: 100%; max-width: 1400px; margin: 0 auto; }
         
         .rating-row {
           width: 100%;
@@ -223,32 +200,41 @@ export function MyRatings() {
           transition: transform 0.2s, border-color 0.2s;
         }
         
-        /* Destaque visual quando em modo de edição */
-        .rating-row.editing {
-          border-color: #fbbf24;
-          background-color: #fffdf5;
-        }
-        
+        .rating-row.editing { border-color: #fbbf24; background-color: #fffdf5; }
         .rating-row:hover { transform: translateY(-2px); border-color: var(--primary); z-index: 10; }
 
         .movie-poster {
-          width: 70px; height: 105px;
+          width: 80px; height: 120px; /* Um pouco maior para se ver bem */
           background: #e0e7ff; border-radius: 8px;
           overflow: hidden; display: flex; align-items: center; justify-content: center;
           flex-shrink: 0; box-shadow: 0 4px 6px rgba(0,0,0,0.1);
         }
         
-        .movie-title { margin: 0; font-size: 1.25rem; color: var(--text-main); font-weight: 700; }
+        .movie-title { margin: 0; font-size: 1.25rem; color: var(--text-main); font-weight: 700; line-height: 1.2; }
+        
         .star-icon { width: 24px; height: 24px; }
-        .meta-tag { background: #f1f5f9; padding: 2px 8px; border-radius: 4px; color: #475569; font-size: 0.8rem; }
+        
+        /* Estilo das Tags igual ao Movies.tsx */
+        .tag { 
+          background: #f1f5f9; 
+          color: #64748b; 
+          padding: 2px 8px; 
+          border-radius: 4px; 
+          font-size: 0.8rem; 
+          font-weight: 600; 
+        }
+
+        .btn-delete {
+          background: none; border: 1px solid #fecaca; 
+          color: #ef4444; padding: 5px 10px; border-radius: 6px; 
+          cursor: pointer; font-size: 0.85rem; font-weight: 600;
+          transition: all 0.2s;
+        }
+        .btn-delete:hover { background: #fef2f2; border-color: #ef4444; }
 
         @media (max-width: 768px) {
           .rating-row { flex-direction: column; align-items: flex-start; gap: 1rem; }
-          .rating-row > div:last-child { 
-            align-items: center; width: 100%; 
-            border-top: 1px solid #f1f5f9; padding-top: 10px; 
-            flex-direction: row; justify-content: space-between; 
-          }
+          .rating-row > div:last-child { width: 100%; border-top: 1px solid #f1f5f9; padding-top: 10px; flex-direction: row; justify-content: space-between; }
         }
       `}</style>
     </div>

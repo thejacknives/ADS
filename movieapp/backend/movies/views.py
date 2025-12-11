@@ -1275,3 +1275,39 @@ def movie_search(request):
         'movies': data,
         'count': len(data),
     })
+
+
+@api_view(['GET'])
+def list_my_ratings_details(request):
+    """
+    Endpoint PESADO: Traz as ratings e os detalhes completos dos filmes.
+    Usado apenas na página 'As Minhas Avaliações'.
+    """
+    error_response, user_id = _check_user_logged_in(request)
+    if error_response:
+        return error_response
+    
+    # Fazemos o Join (select_related) para ser eficiente
+    ratings = Rating.objects.filter(user_id=user_id).select_related('movie').order_by('-created_at')
+
+    ratings_data = []
+    for rating in ratings:
+        # Aqui serializamos o filme COMPLETO (com director, poster, etc)
+        movie_data = _serialize_movie(rating.movie, include_details=True)
+        
+        ratings_data.append({
+            'rating_id': rating.rating_id,
+            'score': rating.score,
+            'created_at': rating.created_at,
+            'movie_id': rating.movie_id,
+            'movie': movie_data, # O filme vai aninhado aqui
+        })
+
+    return Response(
+        {
+            'user_id': user_id,
+            'total_ratings': ratings.count(),
+            'ratings': ratings_data,
+        },
+        status=status.HTTP_200_OK,
+    )
