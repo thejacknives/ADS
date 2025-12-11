@@ -42,7 +42,7 @@ urlpatterns = [
     path("api/auth/logout/", logout_user),
     path("api/ratings/<int:movie_id>/", create_rating),
     path("api/ratings/<int:rating_id>/edit/", edit_rating),
-    path("api/ratings/<int:movie_id>/delete/", delete_rating),
+    path("api/ratings/<int:rating_id>/delete/", delete_rating),
     path("api/movies/<int:movie_id>/ratings/", get_movie_ratings),
     path("api/ratings/mine/", list_my_ratings),
     path("api/recommendations/mine/", list_my_recommendations),

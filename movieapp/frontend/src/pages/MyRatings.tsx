@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import { api } from '../services/api';
 import { Link } from 'react-router-dom';
 
-// 1. Interfaces atualizadas para a estrutura aninhada (Server-Side Join)
 interface MovieDetails {
   id: number;
   title: string;
@@ -17,13 +16,30 @@ interface Rating {
   rating_id: number;
   score: number;
   created_at?: string;
-  movie: MovieDetails; // <--- O filme vem completo aqui dentro
+  movie: MovieDetails;
 }
 
-// --- Componentes de Estrela ---
-function StarIcon({ fill }: { fill: number }) {
+interface Feedback {
+  type: 'success' | 'error';
+  message: string;
+}
+
+// --- Componente de Estrela ---
+function StarIcon({ fill, onClick, onMouseEnter, isInteractive }: { fill: number, onClick?: () => void, onMouseEnter?: () => void, isInteractive?: boolean }) {
   return (
-    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" className="star-icon">
+    <svg 
+      xmlns="http://www.w3.org/2000/svg" 
+      width="24" height="24" viewBox="0 0 24 24" 
+      className="star-icon"
+      onClick={onClick}
+      onMouseEnter={onMouseEnter}
+      style={{ 
+        cursor: isInteractive ? 'pointer' : 'default', 
+        transform: isInteractive ? 'scale(1.15)' : 'scale(1)',
+        filter: isInteractive ? 'drop-shadow(0px 2px 3px rgba(251, 191, 36, 0.5))' : 'none',
+        transition: 'all 0.1s'
+      }}
+    >
       <defs>
         <linearGradient id={`grad-${fill}`}>
           <stop offset={`${fill}%`} stopColor="#fbbf24" />
@@ -35,14 +51,27 @@ function StarIcon({ fill }: { fill: number }) {
   );
 }
 
-function StarRating({ score }: { score: number }) {
+function StarRating({ score, onRate, isEditing }: { score: number, onRate?: (n: number) => void, isEditing: boolean }) {
+  const [hover, setHover] = useState(0);
+
   return (
-    <div style={{ display: 'flex', gap: '2px' }}>
+    <div style={{ display: 'flex', gap: '2px' }} onMouseLeave={() => setHover(0)}>
       {[1, 2, 3, 4, 5].map((index) => {
+        const currentVal = isEditing && hover > 0 ? hover : score;
+        
         let fill = 0;
-        if (score >= index) fill = 100;
-        else if (score >= index - 0.5) fill = 50;
-        return <StarIcon key={index} fill={fill} />;
+        if (currentVal >= index) fill = 100;
+        else if (currentVal >= index - 0.5) fill = 50;
+
+        return (
+          <StarIcon 
+            key={index} 
+            fill={fill} 
+            isInteractive={isEditing}
+            onMouseEnter={() => isEditing && setHover(index)}
+            onClick={() => isEditing && onRate && onRate(index)}
+          />
+        );
       })}
     </div>
   );
@@ -51,8 +80,14 @@ function StarRating({ score }: { score: number }) {
 export function MyRatings() {
   const [ratings, setRatings] = useState<Rating[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [editMode, setEditMode] = useState(false);
+  const [globalError, setGlobalError] = useState('');
+  
+  // Modos de Edição
+  const [manageMode, setManageMode] = useState(false); // O Toggle Global
+  const [editingId, setEditingId] = useState<number | null>(null); // Qual cartão está "aberto" para editar estrelas
+
+  const [feedbackMap, setFeedbackMap] = useState<Record<number, Feedback>>({});
+  const [deleteConfirmMap, setDeleteConfirmMap] = useState<Record<number, boolean>>({});
 
   useEffect(() => {
     loadRatings();
@@ -61,15 +96,58 @@ export function MyRatings() {
   const loadRatings = async () => {
     try {
       setLoading(true);
-      // Chama o endpoint "PESADO" que traz os detalhes todos (Capa, Director, etc)
       const data = await api.getMyRatingsDetails();
       const lista = Array.isArray(data) ? data : (data.ratings || []);
       setRatings(lista);
     } catch (err: any) {
-      console.error(err);
-      setError('Não foi possível carregar as avaliações.');
+      setGlobalError('Não foi possível carregar as avaliações.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const showFeedback = (ratingId: number, type: 'success' | 'error', message: string) => {
+    setFeedbackMap(prev => ({ ...prev, [ratingId]: { type, message } }));
+    setTimeout(() => {
+      setFeedbackMap(prev => { const n = { ...prev }; delete n[ratingId]; return n; });
+    }, 3000);
+  };
+
+  const handleDeleteClick = (ratingId: number) => {
+    if (!deleteConfirmMap[ratingId]) {
+      setDeleteConfirmMap(prev => ({ ...prev, [ratingId]: true }));
+      setTimeout(() => {
+        setDeleteConfirmMap(prev => { const n = { ...prev }; delete n[ratingId]; return n; });
+      }, 3000);
+      return;
+    }
+    // Confirmado
+    handleDeleteConfirm(ratingId);
+  };
+
+  const handleDeleteConfirm = async (ratingId: number) => {
+    try {
+      setRatings(prev => prev.filter(r => r.rating_id !== ratingId));
+      await api.deleteRating(ratingId);
+    } catch (err) {
+      loadRatings();
+      setGlobalError('Erro ao apagar. Tenta novamente.');
+    }
+  };
+
+  const handleUpdateScore = async (ratingId: number, newScore: number) => {
+    const originalRating = ratings.find(r => r.rating_id === ratingId);
+    try {
+      // 1. Atualiza UI
+      setRatings(prev => prev.map(r => r.rating_id === ratingId ? { ...r, score: newScore } : r));
+      // 2. Fecha modo de edição deste cartão
+      setEditingId(null);
+      // 3. Guarda na API
+      await api.editRating(ratingId, newScore);
+      showFeedback(ratingId, 'success', 'Atualizado!');
+    } catch (err) {
+      if (originalRating) setRatings(prev => prev.map(r => r.rating_id === ratingId ? originalRating : r));
+      showFeedback(ratingId, 'error', 'Erro ao guardar.');
     }
   };
 
@@ -78,7 +156,6 @@ export function MyRatings() {
   return (
     <div style={{ width: '100%', padding: '0 40px', boxSizing: 'border-box' }}>
       
-      {/* HEADER */}
       <header style={{ 
         display: 'flex', justifyContent: 'space-between', alignItems: 'center', 
         marginBottom: '2rem', maxWidth: '1400px', margin: '0 auto 2rem auto' 
@@ -88,22 +165,23 @@ export function MyRatings() {
         <div style={{ display: 'flex', gap: '1rem' }}>
           <button 
             className="btn btn-outline" 
-            onClick={() => setEditMode(!editMode)}
+            onClick={() => { setManageMode(!manageMode); setEditingId(null); }}
             style={{ 
-              borderColor: editMode ? '#fbbf24' : undefined, 
-              backgroundColor: editMode ? '#fffbeb' : undefined,
-              color: editMode ? '#d97706' : undefined
+              borderColor: manageMode ? '#fbbf24' : undefined, 
+              backgroundColor: manageMode ? '#fffbeb' : undefined,
+              color: manageMode ? '#d97706' : undefined,
+              fontWeight: 600
             }}
           >
-            {editMode ? 'Concluir' : 'Gerir Avaliações'}
+            {manageMode ? 'Concluir Edição' : '✏️ Gerir Edições'}
           </button>
           <Link to="/movies" className="btn btn-primary">Avaliar Novo Filme</Link>
         </div>
       </header>
 
-      {error && <div className="alert alert-error" style={{maxWidth: '1400px', margin: '0 auto 1rem auto'}}>{error}</div>}
+      {globalError && <div className="alert alert-error" style={{maxWidth: '1400px', margin: '0 auto 1rem auto'}}>{globalError}</div>}
 
-      {ratings.length === 0 && !error ? (
+      {ratings.length === 0 && !globalError ? (
         <div style={{textAlign: 'center', padding: '4rem', background: 'white', borderRadius: '12px', border: '1px dashed #cbd5e1', maxWidth: '1400px', margin: '0 auto'}}>
           <h3 style={{color: '#64748b'}}>Ainda sem avaliações 🍿</h3>
           <p>Vai ao menu Filmes para começares a tua coleção!</p>
@@ -112,11 +190,14 @@ export function MyRatings() {
         <div className="ratings-list">
           {ratings.map((rating) => {
             const movie = rating.movie; 
+            const feedback = feedbackMap[rating.rating_id];
+            const isDeleting = deleteConfirmMap[rating.rating_id];
+            const isEditingThis = editingId === rating.rating_id;
 
             return (
-              <div key={rating.rating_id} className={`rating-row ${editMode ? 'editing' : ''}`}>
+              <div key={rating.rating_id} className={`rating-row ${isEditingThis ? 'active-edit' : ''}`}>
                 
-                {/* LADO ESQUERDO: Poster e Info */}
+                {/* Info Filme */}
                 <div style={{ display: 'flex', alignItems: 'flex-start', gap: '20px', flex: 1 }}>
                   <div className="movie-poster">
                     {movie?.poster_url ? (
@@ -128,50 +209,63 @@ export function MyRatings() {
                   
                   <div style={{ paddingRight: '20px' }}>
                     <h3 className="movie-title">{movie.title}</h3>
-                    
-                    {/* Tags Cinzentas (Consistente com Movies.tsx) */}
                     <div style={{ display: 'flex', gap: '8px', fontSize: '0.85rem', color: '#64748b', marginTop: '6px', flexWrap: 'wrap' }}>
                       <span className="tag">{movie.year}</span>
                       <span className="tag">{movie.genre}</span>
                       {movie.director && <span className="tag">🎥 {movie.director}</span>}
                     </div>
-
-                    {/* Descrição */}
                     {movie.description && (
-                       <p style={{ 
-                         margin: '10px 0 0 0', 
-                         fontSize: '0.9rem', 
-                         color: '#64748b', 
-                         lineHeight: '1.4',
-                         display: '-webkit-box', 
-                         WebkitLineClamp: 2, 
-                         WebkitBoxOrient: 'vertical', 
-                         overflow: 'hidden' 
-                       }}>
+                       <p style={{ margin: '10px 0 0 0', fontSize: '0.9rem', color: '#64748b', lineHeight: '1.4', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
                          {movie.description}
                        </p>
                     )}
                   </div>
                 </div>
 
-                {/* LADO DIREITO: Nota e Data */}
+                {/* Área de Ações e Estrelas */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
                   
-                  {/* Botão de Remover (Aparece só no Edit Mode) */}
-                  {editMode && (
-                    <button 
-                      className="btn-delete"
-                      onClick={() => alert('Funcionalidade de eliminar por implementar (chamar api.deleteRating)')}
-                    >
-                      🗑️ Remover
-                    </button>
+                  {/* COLUNA DE BOTÕES (Só aparece se 'Gerir Edições' estiver ON) */}
+                  {manageMode && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      
+                      {/* 1. Botão Editar (Fica em cima) */}
+                      <button 
+                        className={`btn-action btn-edit ${isEditingThis ? 'active' : ''}`}
+                        onClick={() => setEditingId(isEditingThis ? null : rating.rating_id)}
+                      >
+                        {isEditingThis ? 'Cancelar' : '✏️ Editar'}
+                      </button>
+
+                      {/* 2. Botão Remover (Fica em baixo) */}
+                      <button 
+                        className={`btn-action btn-delete ${isDeleting ? 'confirm' : ''}`}
+                        onClick={() => handleDeleteClick(rating.rating_id)}
+                      >
+                        {isDeleting ? 'Confirma?' : '🗑️ Remover'}
+                      </button>
+                    </div>
                   )}
 
-                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '6px', minWidth: '120px' }}>
-                    <StarRating score={rating.score} />
+                  {/* Estrelas e Nota */}
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '6px', minWidth: '130px' }}>
+                    
+                    {/* Feedback visual inline */}
+                    {feedback && (
+                      <span style={{ fontSize: '0.8rem', fontWeight: 'bold', color: feedback.type === 'success' ? '#16a34a' : '#dc2626' }}>
+                        {feedback.type === 'success' ? '✓ ' : '✕ '}{feedback.message}
+                      </span>
+                    )}
+
+                    {/* Estrelas só são interativas se isEditingThis for true */}
+                    <StarRating 
+                      score={rating.score} 
+                      isEditing={isEditingThis} 
+                      onRate={(newScore) => handleUpdateScore(rating.rating_id, newScore)}
+                    />
                     
                     <div style={{display:'flex', flexDirection:'column', alignItems:'flex-end'}}>
-                      <span style={{ fontSize: '1.1rem', fontWeight: 'bold', color: '#475569' }}>
+                      <span style={{ fontSize: '1.1rem', fontWeight: 'bold', color: isEditingThis ? '#fbbf24' : '#475569' }}>
                         {rating.score} / 5
                       </span>
                       <small style={{ color: '#94a3b8', fontSize: '0.75rem', marginTop: '2px' }}>
@@ -191,46 +285,37 @@ export function MyRatings() {
         .ratings-list { display: flex; flex-direction: column; gap: 1rem; width: 100%; max-width: 1400px; margin: 0 auto; }
         
         .rating-row {
-          width: 100%;
-          box-sizing: border-box;
-          background: white; padding: 1.5rem; 
-          border-radius: 16px;
+          width: 100%; box-sizing: border-box;
+          background: white; padding: 1.5rem; border-radius: 16px;
           box-shadow: var(--shadow); border: 1px solid #f1f5f9;
           display: flex; justify-content: space-between; align-items: center;
-          transition: transform 0.2s, border-color 0.2s;
-        }
-        
-        .rating-row.editing { border-color: #fbbf24; background-color: #fffdf5; }
-        .rating-row:hover { transform: translateY(-2px); border-color: var(--primary); z-index: 10; }
-
-        .movie-poster {
-          width: 80px; height: 120px; /* Um pouco maior para se ver bem */
-          background: #e0e7ff; border-radius: 8px;
-          overflow: hidden; display: flex; align-items: center; justify-content: center;
-          flex-shrink: 0; box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-        }
-        
-        .movie-title { margin: 0; font-size: 1.25rem; color: var(--text-main); font-weight: 700; line-height: 1.2; }
-        
-        .star-icon { width: 24px; height: 24px; }
-        
-        /* Estilo das Tags igual ao Movies.tsx */
-        .tag { 
-          background: #f1f5f9; 
-          color: #64748b; 
-          padding: 2px 8px; 
-          border-radius: 4px; 
-          font-size: 0.8rem; 
-          font-weight: 600; 
-        }
-
-        .btn-delete {
-          background: none; border: 1px solid #fecaca; 
-          color: #ef4444; padding: 5px 10px; border-radius: 6px; 
-          cursor: pointer; font-size: 0.85rem; font-weight: 600;
           transition: all 0.2s;
         }
+        
+        .rating-row.active-edit { border-color: #fbbf24; background-color: #fffdf5; transform: scale(1.01); }
+        .rating-row:hover { border-color: var(--primary); z-index: 10; }
+
+        .movie-poster { width: 80px; height: 120px; background: #e0e7ff; border-radius: 8px; overflow: hidden; display: flex; align-items: center; justify-content: center; flex-shrink: 0; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .movie-title { margin: 0; font-size: 1.25rem; color: var(--text-main); font-weight: 700; line-height: 1.2; }
+        .star-icon { width: 24px; height: 24px; transition: transform 0.1s; }
+        .tag { background: #f1f5f9; color: #64748b; padding: 2px 8px; border-radius: 4px; font-size: 0.8rem; font-weight: 600; }
+
+        /* Botões de Ação */
+        .btn-action {
+          padding: 6px 12px; border-radius: 6px; cursor: pointer; 
+          font-size: 0.8rem; font-weight: 600; width: 105px; text-align: center;
+          transition: all 0.2s;
+        }
+
+        .btn-edit { background: white; border: 1px solid #cbd5e1; color: #475569; }
+        .btn-edit:hover { background: #f1f5f9; }
+        .btn-edit.active { background: #fbbf24; border-color: #fbbf24; color: white; }
+
+        .btn-delete { background: white; border: 1px solid #fecaca; color: #ef4444; }
         .btn-delete:hover { background: #fef2f2; border-color: #ef4444; }
+        .btn-delete.confirm { background: #ef4444; color: white; border-color: #ef4444; animation: pulse 0.5s; }
+
+        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
 
         @media (max-width: 768px) {
           .rating-row { flex-direction: column; align-items: flex-start; gap: 1rem; }

@@ -60,12 +60,17 @@ export const api = {
   rateMovie: (movieId: number, score: number) => 
     request(`/ratings/${movieId}/`, { 
       method: 'POST', 
-      body: JSON.stringify({ rating: score }) // Confirma se o backend quer "rating" ou "score"
+      body: JSON.stringify({ rating: score }) 
     }),
 
   editRating: (ratingId: number, score: number) => 
     request(`/ratings/${ratingId}/edit/`, { 
       method: 'PUT', 
       body: JSON.stringify({ rating: score }) 
+    }),
+
+    deleteRating: (ratingId: number) => 
+    request(`/ratings/${ratingId}/delete/`, { 
+      method: 'DELETE' 
     }),
 };
