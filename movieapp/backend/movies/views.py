@@ -1004,7 +1004,7 @@ def system_statistics(request):
     )
 
 
-def _serialize_movie(movie, include_details=False):
+def _serialize_movie(movie, include_details=True):
     """Serialize movie object"""
     data = {
         'id': movie.movie_id,
