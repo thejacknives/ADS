@@ -12,7 +12,7 @@ from collections import defaultdict
 from django.contrib.auth.hashers import check_password, make_password
 from django.core.exceptions import ValidationError
 from django.core.validators import validate_email
-from django.db.models import Count, Avg
+from django.db.models import Count, Avg, Q
 from rest_framework import status
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
@@ -1187,3 +1187,91 @@ def movie_detail(request, movie_id):
     
     return Response(data)
 
+
+@api_view(['GET'])
+def movie_search(request):
+    """
+    GET /api/movies/search/ -> Search movies
+    Query params: 
+        ?q=query          (searches title, director)
+        &genre=action
+        &year_min=2000
+        &year_max=2024
+        &rating_min=3.5
+        &sort=title|year|rating
+    """
+    movies = Movie.objects.all()
+    
+    # Text search (title or director)
+    query = request.GET.get('q', '').strip()
+    if query:
+        movies = movies.filter(
+            Q(title__icontains=query) | Q(director__icontains=query)
+        )
+    
+    # Genre filter
+    genre = request.GET.get('genre', '').strip()
+    if genre:
+        movies = movies.filter(genre__icontains=genre)
+    
+    # Year filters
+    year_min = request.GET.get('year_min')
+    if year_min:
+        try:
+            movies = movies.filter(year__gte=int(year_min))
+        except ValueError:
+            pass
+    
+    year_max = request.GET.get('year_max')
+    if year_max:
+        try:
+            movies = movies.filter(year__lte=int(year_max))
+        except ValueError:
+            pass
+    
+    # Rating filter (filter in Python after loading)
+    rating_min = request.GET.get('rating_min')
+    if rating_min:
+        try:
+            rating_min = float(rating_min)
+            movies_list = list(movies)
+            movies_list = [m for m in movies_list if m.average_rating >= rating_min]
+            
+            # Apply sorting
+            sort_by = request.GET.get('sort', 'title')
+            if sort_by == 'year':
+                movies_list.sort(key=lambda m: m.year or 0, reverse=True)
+            elif sort_by == 'rating':
+                movies_list.sort(key=lambda m: m.average_rating, reverse=True)
+            else:
+                movies_list.sort(key=lambda m: m.title.lower())
+            
+            data = [_serialize_movie(m) for m in movies_list]
+            return Response({
+                'movies': data,
+                'count': len(data),
+            })
+        except ValueError:
+            pass
+    
+    # Sorting (without rating filter)
+    sort_by = request.GET.get('sort', 'title')
+    if sort_by == 'year':
+        movies = movies.order_by('-year')
+    elif sort_by == 'rating':
+       
+        movies_list = list(movies)
+        movies_list.sort(key=lambda m: m.average_rating, reverse=True)
+        data = [_serialize_movie(m) for m in movies_list]
+        return Response({
+            'movies': data,
+            'count': len(data),
+        })
+    else:
+        movies = movies.order_by('title')
+    
+    data = [_serialize_movie(m) for m in movies]
+    return Response({
+        'movies': data,
+        'count': len(data),
+    })
