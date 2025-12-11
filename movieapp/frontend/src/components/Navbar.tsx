@@ -69,7 +69,11 @@ export function Navbar() {
           backdrop-filter: blur(12px); 
           -webkit-backdrop-filter: blur(12px); /* Para Safari */
           
+<<<<<<< HEAD
           /* Sombra Suave */
+=======
+          /* Sombra Suave */j
+>>>>>>> frontend_rosendo
           box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
           border: 1px solid rgba(255, 255, 255, 0.5);
           

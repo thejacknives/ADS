@@ -185,7 +185,7 @@ function App() {
         <Route path="/movies" element={<Home />} />
         <Route path="/movies/:movieId" element={<MovieDetails />} />
         <Route path="/movies/:movieId/ratings" element={<MovieRating />} />
-        <Route path="/" element={<Navigate to="/movies" replace />} />
+        <Route path="/" element={<Navigate to="/login" replace />} />
         <Route path="/my-ratings" element={<MyRatings />} />
       </Routes>
     </BrowserRouter>
