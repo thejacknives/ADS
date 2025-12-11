@@ -102,7 +102,7 @@ export function MyRatings() {
       
       <header style={{ 
         display: 'flex', justifyContent: 'space-between', alignItems: 'center', 
-        marginBottom: '2rem', maxWidth: '1400px', margin: '0 auto 2rem auto' 
+        marginBottom: '2rem', maxWidth: '90%', margin: '0 auto 2rem auto' 
       }}>
         <h2>As Minhas Avaliações</h2>
         
@@ -211,7 +211,7 @@ export function MyRatings() {
       )}
 
       <style>{`
-        .ratings-list { display: flex; flex-direction: column; gap: 1rem; width: 100%; max-width: 1400px; margin: 0 auto; }
+        .ratings-list { display: flex; flex-direction: column; gap: 1rem; width: 90%; max-width: 1400px; margin: 0 auto; }
         
         .rating-row {
           width: 100%;
