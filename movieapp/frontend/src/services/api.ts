@@ -73,4 +73,6 @@ export const api = {
     request(`/ratings/${ratingId}/delete/`, { 
       method: 'DELETE' 
     }),
+
+    getMovie: (id: number) => request(`/movies/${id}/`),
 };

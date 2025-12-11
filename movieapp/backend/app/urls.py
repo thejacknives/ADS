@@ -46,7 +46,7 @@ urlpatterns = [
     path("api/movies/<int:movie_id>/ratings/", get_movie_ratings),
     path("api/ratings/mine/", list_my_ratings),
     path("api/recommendations/mine/", list_my_recommendations),
-    path('api/movies/<int:movie_id>/', get_movie_details, name='movie_details'),
+    #path('api/movies/<int:movie_id>/', get_movie_details, name='movie_details'),
     path("api/admin/movies/add/", admin_add_movie),
     path("api/admin/movies/<int:movie_id>/edit/", admin_edit_movie),
     path("api/admin/movies/<int:movie_id>/delete/", admin_delete_movie),

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { api } from '../services/api';
+import { Link } from 'react-router-dom'; // <--- Importante para a navegação
 
 interface Movie {
   id: number;
@@ -255,7 +256,6 @@ export function Movies() {
 
       {error && <div className="alert alert-error" style={{maxWidth: '1400px', margin: '0 auto 1rem auto'}}>{error}</div>}
 
-      {/* LISTA DE FILMES */}
       {loading && (
         <div style={{textAlign: 'center', margin: '50px 0'}}>
            <span style={{fontSize: '1.2rem', color: '#64748b'}}>🔄 A carregar...</span>
@@ -278,19 +278,23 @@ export function Movies() {
             return (
               <div key={mId} className={cardClass}>
                 
-                {/* 1. Capa */}
-                <div className="poster-wrapper">
+                {/* 1. Capa (Com Link para Detalhes) */}
+                <Link to={`/movies/${mId}`} className="poster-wrapper" style={{cursor: 'pointer'}}>
                   {movie.poster_url ? (
                     <img src={movie.poster_url} alt={movie.title} />
                   ) : (
                     <div className="poster-placeholder">🎬</div>
                   )}
-                </div>
+                </Link>
 
                 <div className="card-content">
                   <div style={{ flex: 1 }}>
-                    {/* 2. Título */}
-                    <h3 className="card-title">{movie.title}</h3>
+                    {/* 2. Título (Com Link) */}
+                    <h3 className="card-title">
+                      <Link to={`/movies/${mId}`} style={{textDecoration: 'none', color: 'inherit'}}>
+                        {movie.title}
+                      </Link>
+                    </h3>
                     
                     {/* 3. Metadados na mesma linha (Ano, Género, Director) */}
                     <div className="meta-tags">
@@ -386,6 +390,7 @@ export function Movies() {
         }
 
         .card-title { margin: 0; font-size: 1.25rem; color: var(--text-main); font-weight: 700; line-height: 1.2; }
+        .card-title a:hover { color: var(--primary) !important; }
 
         /* Metadados na mesma linha */
         .meta-tags { 
