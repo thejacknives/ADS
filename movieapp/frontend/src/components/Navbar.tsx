@@ -21,7 +21,7 @@ export function Navbar() {
       <div className="nav-content">
         {/* Esquerda */}
         <div className="nav-left">
-          <Link to={username ? "/movies" : "/"} className="logo">🎬 MovieApp</Link>
+          <Link to={username ? "/Movies" : "/"} className="logo">🎬 MovieApp</Link>
           
           {username && (
             <div className="nav-links">
