@@ -111,3 +111,13 @@ CSRF_TRUSTED_ORIGINS = [
 REST_FRAMEWORK = { "DEFAULT_PERMISSION_CLASSES": ["rest_framework.permissions.AllowAny"] }
 USE_X_FORWARDED_HOST = True
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
+SESSION_COOKIE_SAMESITE = 'None'
+CSRF_COOKIE_SAMESITE = 'None'
+
+# 2. Obrigatório quando se usa SameSite='None'. Garante que só funciona em HTTPS.
+SESSION_COOKIE_SECURE = True
+CSRF_COOKIE_SECURE = True
+
+# (Opcional, mas recomendado) Garante que o navegador não bloqueia o cookie
+SESSION_COOKIE_DOMAIN = None
