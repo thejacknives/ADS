@@ -777,7 +777,7 @@ def admin_add_movie(request):
             status=status.HTTP_400_BAD_REQUEST,
         )
 
-    if poster_url is not None and poster_url != "" and len(poster_url) > 512:
+    if poster_url is not None and len(poster_url) > 512:
         return Response(
             {'error': 'Poster URL must be 512 characters or less'},
             status=status.HTTP_400_BAD_REQUEST,
@@ -874,7 +874,7 @@ def admin_edit_movie(request, movie_id):
             status=status.HTTP_400_BAD_REQUEST,
         )
 
-    if poster_url is not None and poster_url != "" and len(poster_url) > 512:
+    if poster_url is not None and len(poster_url) > 512:
         return Response(
             {'error': 'Poster URL must be 512 characters or less'},
             status=status.HTTP_400_BAD_REQUEST,
