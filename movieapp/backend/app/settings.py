@@ -57,12 +57,19 @@ TEMPLATES = [
 ROOT_URLCONF = "app.urls"
 WSGI_APPLICATION = "app.wsgi.application"
 
-
-if os.getenv("DATABASE_URL"):
+import sys
+# Use SQLite em memória para testes (mais rápido e sem dependências)
+if "test" in sys.argv or "pytest" in sys.argv[0]:
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": ":memory:",
+        }
+    }
+elif os.getenv("DATABASE_URL"):
     DATABASES = {
         "default": dj_database_url.parse(os.environ["DATABASE_URL"], conn_max_age=600)
     }
-
 else:
     DATABASES = {
         "default": {

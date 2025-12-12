@@ -888,6 +888,11 @@ def admin_edit_movie(request, movie_id):
                 {'error': 'Year must be an integer if provided'},
                 status=status.HTTP_400_BAD_REQUEST,
             )
+        
+    # check if user is admin
+    error_response, user = _check_user_is_admin(user_id)
+    if error_response:
+        return error_response
     
     # update the movie
     movie.title = title
