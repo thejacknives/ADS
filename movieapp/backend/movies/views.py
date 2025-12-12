@@ -765,19 +765,19 @@ def admin_add_movie(request):
             status=status.HTTP_400_BAD_REQUEST,
         )
 
+    if len(genre) > 512:
+        return Response(
+            {'error': 'Genre must be 512 characters or less'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+    
     if director is not None and director != "" and len(director) > 255:
         return Response(
             {'error': 'Director must be 255 characters or less'},
             status=status.HTTP_400_BAD_REQUEST,
         )
 
-    if len(genre) > 512:
-        return Response(
-            {'error': 'Genre must be 512 characters or less'},
-            status=status.HTTP_400_BAD_REQUEST,
-        )
-
-    if len(poster_url) > 512:
+    if poster_url is not None and poster_url != "" and len(poster_url) > 512:
         return Response(
             {'error': 'Poster URL must be 512 characters or less'},
             status=status.HTTP_400_BAD_REQUEST,
@@ -841,11 +841,6 @@ def admin_edit_movie(request, movie_id):
             status=status.HTTP_404_NOT_FOUND,
         )
     
-    # check if user is admin
-    error_response, user = _check_user_is_admin(user_id)
-    if error_response:
-        return error_response
-    
     # validate movie data
     title = request.data.get('title')
     director = request.data.get('director')
@@ -867,19 +862,19 @@ def admin_edit_movie(request, movie_id):
             status=status.HTTP_400_BAD_REQUEST,
         )
 
+    if len(genre) > 512:
+        return Response(
+            {'error': 'Genre must be 512 characters or less'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+    
     if director is not None and director != "" and len(director) > 255:
         return Response(
             {'error': 'Director must be 255 characters or less'},
             status=status.HTTP_400_BAD_REQUEST,
         )
 
-    if len(genre) > 512:
-        return Response(
-            {'error': 'Genre must be 512 characters or less'},
-            status=status.HTTP_400_BAD_REQUEST,
-        )
-
-    if len(poster_url) > 512:
+    if poster_url is not None and poster_url != "" and len(poster_url) > 512:
         return Response(
             {'error': 'Poster URL must be 512 characters or less'},
             status=status.HTTP_400_BAD_REQUEST,
