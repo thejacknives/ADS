@@ -3,7 +3,7 @@
 // 1. Determine the Backend URL based on the environment
 // On Render: It will read the VITE_API_URL variable you set in the dashboard.
 // On Localhost: It defaults to http://localhost:8000
-const BASE_URL = 'https://movieapp-backend-tsu0.onrender.com/'
+const BASE_URL = 'https://movieapp-backend-tsu0.onrender.com'
 
 
 // 2. Add the /api prefix
