@@ -746,33 +746,51 @@ def admin_add_movie(request):
     
     # validate movie data
     title = request.data.get('title')
+    director = request.data.get('director')
     genre = request.data.get('genre')
+    year = request.data.get('year')
     description = request.data.get('description')
+    poster_url = request.data.get('poster_url')
 
     if not title or not genre or not description:
         return Response(
             {'error': 'Title, genre, and description are required'},
             status=status.HTTP_400_BAD_REQUEST,
         )
-    
+
     # validate length constraints
     if len(title) > 512:
         return Response(
             {'error': 'Title must be 512 characters or less'},
             status=status.HTTP_400_BAD_REQUEST,
         )
-    
+
+    if director is not None and director != "" and len(director) > 255:
+        return Response(
+            {'error': 'Director must be 255 characters or less'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
     if len(genre) > 512:
         return Response(
             {'error': 'Genre must be 512 characters or less'},
             status=status.HTTP_400_BAD_REQUEST,
         )
-    
-    if len(description) > 512:
+
+    if len(poster_url) > 512:
         return Response(
-            {'error': 'Description must be 512 characters or less'},
+            {'error': 'Poster URL must be 512 characters or less'},
             status=status.HTTP_400_BAD_REQUEST,
         )
+
+    if year not in [None, "",]:
+        try:
+            year = int(year)
+        except (TypeError, ValueError):
+            return Response(
+                {'error': 'Year must be an integer if provided'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
     
     # check if user is admin
     error_response, user = _check_user_is_admin(user_id)
@@ -782,8 +800,11 @@ def admin_add_movie(request):
     # create the movie
     movie = Movie.objects.create(
         title=title,
+        director=director if director not in [None, ""] else None,
         genre=genre,
+        year=year if year not in [None, ""] else None,
         description=description,
+        poster_url=poster_url if poster_url not in [None, ""] else None,
     )
     return Response(
         {
@@ -791,8 +812,11 @@ def admin_add_movie(request):
             'movie': {
                 'movie_id': movie.movie_id,
                 'title': movie.title,
+                'director': movie.director,
                 'genre': movie.genre,
+                'year': movie.year,
                 'description': movie.description,
+                'poster_url': movie.poster_url,
             },
         },
         status=status.HTTP_201_CREATED,
@@ -824,38 +848,59 @@ def admin_edit_movie(request, movie_id):
     
     # validate movie data
     title = request.data.get('title')
+    director = request.data.get('director')
     genre = request.data.get('genre')
+    year = request.data.get('year')
     description = request.data.get('description')
+    poster_url = request.data.get('poster_url')
 
     if not title or not genre or not description:
         return Response(
             {'error': 'Title, genre, and description are required'},
             status=status.HTTP_400_BAD_REQUEST,
         )
-    
+
     # validate length constraints
     if len(title) > 512:
         return Response(
             {'error': 'Title must be 512 characters or less'},
             status=status.HTTP_400_BAD_REQUEST,
         )
-    
+
+    if director is not None and director != "" and len(director) > 255:
+        return Response(
+            {'error': 'Director must be 255 characters or less'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
     if len(genre) > 512:
         return Response(
             {'error': 'Genre must be 512 characters or less'},
             status=status.HTTP_400_BAD_REQUEST,
         )
-    
-    if len(description) > 512:
+
+    if len(poster_url) > 512:
         return Response(
-            {'error': 'Description must be 512 characters or less'},
+            {'error': 'Poster URL must be 512 characters or less'},
             status=status.HTTP_400_BAD_REQUEST,
         )
+
+    if year not in [None, "",]:
+        try:
+            year = int(year)
+        except (TypeError, ValueError):
+            return Response(
+                {'error': 'Year must be an integer if provided'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
     
     # update the movie
     movie.title = title
+    movie.director = director if director not in [None, ""] else None
     movie.genre = genre
+    movie.year = year if year not in [None, ""] else None
     movie.description = description
+    movie.poster_url = poster_url if poster_url not in [None, ""] else None
     movie.save()
 
     return Response(
@@ -864,8 +909,11 @@ def admin_edit_movie(request, movie_id):
             'movie': {
                 'movie_id': movie.movie_id,
                 'title': movie.title,
+                'director': movie.director,
                 'genre': movie.genre,
+                'year': movie.year,
                 'description': movie.description,
+                'poster_url': movie.poster_url,
             },
         },
         status=status.HTTP_200_OK,
