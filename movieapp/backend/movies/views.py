@@ -771,7 +771,7 @@ def admin_add_movie(request):
             status=status.HTTP_400_BAD_REQUEST,
         )
     
-    if director is not None and director != "" and len(director) > 255:
+    if director is not None and len(director) > 255:
         return Response(
             {'error': 'Director must be 255 characters or less'},
             status=status.HTTP_400_BAD_REQUEST,
@@ -868,7 +868,7 @@ def admin_edit_movie(request, movie_id):
             status=status.HTTP_400_BAD_REQUEST,
         )
     
-    if director is not None and director != "" and len(director) > 255:
+    if director is not None and len(director) > 255:
         return Response(
             {'error': 'Director must be 255 characters or less'},
             status=status.HTTP_400_BAD_REQUEST,
