@@ -20,6 +20,11 @@ export function Login() {
       // Guardar nome para a Navbar
       if (data.user && data.user.username) {
         localStorage.setItem('movieapp_user', data.user.username);
+          if (data.user.is_admin) {
+          localStorage.setItem('movieapp_is_admin', 'true');
+        } else {
+          localStorage.removeItem('movieapp_is_admin');
+        }     
       }
       
       navigate('/movies'); 

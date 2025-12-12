@@ -1,9 +1,13 @@
+import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { api } from '../services/api';
 
 export function Navbar() {
   const navigate = useNavigate();
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  
   const username = localStorage.getItem('movieapp_user');
+  const isAdmin = localStorage.getItem('movieapp_is_admin') === 'true';
 
   const handleLogout = async () => {
     try {
@@ -12,106 +16,182 @@ export function Navbar() {
       console.error("Erro logout", error);
     } finally {
       localStorage.removeItem('movieapp_user');
+      localStorage.removeItem('movieapp_is_admin');
       navigate('/login');
+      setIsMenuOpen(false);
     }
   };
+
+  const closeMenu = () => setIsMenuOpen(false);
 
   return (
     <nav className="navbar">
       <div className="nav-content">
-        {/* Esquerda */}
-        <div className="nav-left">
-          <Link to={username ? "/Movies" : "/"} className="logo">🎬 MovieApp</Link>
-          
-          {username && (
-            <div className="nav-links">
-              <Link to="/movies">Filmes</Link>
-              <Link to="/my-ratings">Minhas Avaliações</Link>
-              <Link to="/recommendations" className="nav-link">Recomendações</Link>
-            </div>
-          )}
-        </div>
+        
+        {/* 1. LOGO (Sempre visível) */}
+        <Link to={username ? "/Movies" : "/"} className="logo" onClick={closeMenu}>
+          🎬 MovieApp
+        </Link>
 
-        {/* Direita */}
-        <div className="nav-right">
+        {/* 2. MENU DESKTOP (Escondido em Mobile) */}
+        {username && (
+          <div className="desktop-links">
+            <Link to="/movies">Filmes</Link>
+            <Link to="/my-ratings">Minhas Avaliações</Link>
+            <Link to="/recommendations">Recomendações</Link>
+          </div>
+        )}
+
+        {/* 3. AÇÕES DESKTOP (Escondido em Mobile) */}
+        <div className="desktop-actions">
           {username ? (
             <>
               <span className="user-welcome">Olá, <strong>{username}</strong></span>
-              <button onClick={handleLogout} className="btn btn-danger" style={{padding: '0.5rem 1rem', fontSize: '0.85rem'}}>
+              
+              {isAdmin && (
+                <Link to="/admin" className="btn btn-admin-desktop">
+                  🛠️ Admin
+                </Link>
+              )}
+
+              <button onClick={handleLogout} className="btn btn-danger btn-sm">
                 Sair
               </button>
             </>
           ) : (
-            <div className="nav-auth">
-               <Link to="/login" className="btn btn-outline" style={{marginRight: '10px'}}>Login</Link>
+            <div className="auth-buttons">
+               <Link to="/login" className="btn btn-outline">Login</Link>
                <Link to="/register" className="btn btn-primary">Registar</Link>
             </div>
           )}
         </div>
+
+        {/* 4. BOTÃO HAMBÚRGUER (Só visível em Mobile) */}
+        <button 
+          className="mobile-toggle" 
+          onClick={() => setIsMenuOpen(!isMenuOpen)}
+          aria-label="Toggle menu"
+        >
+          {isMenuOpen ? '✕' : '☰'}
+        </button>
       </div>
 
-      {/* CSS Específico da Navbar (Pode ir para index.css se preferires) */}
-      <style>{`
-        .navbar { 
-          /* Posição Flutuante */
-          position: fixed; 
-          top: 20px; 
-          left: 50%; 
-          transform: translateX(-50%); 
-          z-index: 1000; 
+      {/* 5. MENU MOBILE (Dropdown) */}
+      <div className={`mobile-menu ${isMenuOpen ? 'open' : ''}`}>
+        {username ? (
+          <>
+            <div className="mobile-user-info">
+              Olá, <strong>{username}</strong>
+            </div>
+            
+            <Link to="/movies" onClick={closeMenu}>🍿 Filmes</Link>
+            <Link to="/my-ratings" onClick={closeMenu}>⭐ Minhas Avaliações</Link>
+            <Link to="/recommendations" onClick={closeMenu}>🔮 Recomendações</Link>
+            
+            <div className="mobile-divider"></div>
+            
+            {isAdmin && (
+              <Link to="/admin" onClick={closeMenu} className="mobile-admin-link">
+                🛠️ Painel Admin
+              </Link>
+            )}
+            
+            <button onClick={handleLogout} className="mobile-logout">
+              Sair
+            </button>
+          </>
+        ) : (
+          <div className="mobile-auth">
+            <Link to="/login" onClick={closeMenu} className="btn btn-outline block">Login</Link>
+            <Link to="/register" onClick={closeMenu} className="btn btn-primary block">Registar</Link>
+          </div>
+        )}
+      </div>
 
-          /* Tamanho e Forma */
-          width: 90%; 
-          max-width: 1000px; 
+      {/* --- ESTILOS CSS --- */}
+      <style>{`
+        /* --- ESTILOS BASE (Desktop) --- */
+        .navbar { 
+          position: fixed; top: 20px; left: 50%; transform: translateX(-50%); 
+          z-index: 1000; width: 90%; max-width: 1200px;
           border-radius: 16px; 
-          
-          /* Visual Moderno (Vidro) */
-          background: rgba(255, 255, 255, 0.85); 
-          backdrop-filter: blur(12px); 
-          -webkit-backdrop-filter: blur(12px); /* Para Safari */
-          
-          /* Sombra Suave */
-          box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
-          border: 1px solid rgba(255, 255, 255, 0.5);
-          
+          background: rgba(255, 255, 255, 0.9); 
+          backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+          box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08); border: 1px solid rgba(255, 255, 255, 0.5);
           transition: all 0.3s ease;
         }
 
-        /* Layout Interno */
         .nav-content { 
-          padding: 0.8rem 2rem; /* Um pouco mais compacto */
-          display: flex; 
-          justify-content: space-between; 
-          align-items: center; 
+          padding: 0.8rem 1.5rem; 
+          display: flex; justify-content: space-between; align-items: center; 
         }
 
-        .nav-left { display: flex; align-items: center; gap: 2rem; }
+        .logo { font-size: 1.4rem; font-weight: 800; color: #1e293b; text-decoration: none; }
         
-        .logo { 
-          font-size: 1.4rem; 
-          font-weight: 800; 
-          color: var(--text-main); 
-          text-decoration: none; 
-          letter-spacing: -0.5px;
-        }
-        
-        .nav-links { display: flex; gap: 1.5rem; }
-        .nav-links a { 
-          color: var(--text-secondary); 
-          font-weight: 500;
-          font-size: 0.95rem;
-          transition: color 0.2s; 
-        }
-        .nav-links a:hover { color: var(--primary); }
-        
-        .nav-right { display: flex; align-items: center; gap: 1rem; }
-        .user-welcome { color: var(--text-secondary); font-size: 0.9rem; margin-right: 5px; }
+        .desktop-links { display: flex; gap: 1.5rem; margin-left: 2rem; margin-right: auto; }
+        .desktop-links a { color: #64748b; font-weight: 500; font-size: 0.95rem; transition: color 0.2s; }
+        .desktop-links a:hover { color: #4f46e5; }
 
-        /* Responsividade para telemóvel */
-        @media (max-width: 768px) {
+        .desktop-actions { display: flex; align-items: center; gap: 10px; }
+        .user-welcome { color: #64748b; font-size: 0.9rem; margin-right: 5px; }
+
+        /* Botões */
+        .btn-sm { padding: 0.5rem 1rem; font-size: 0.85rem; }
+        .btn-admin-desktop {
+          background-color: #1e293b; color: white;
+          padding: 0.5rem 1rem; font-size: 0.85rem;
+          text-decoration: none; display: inline-flex; align-items: center; gap: 5px;
+        }
+        .btn-admin-desktop:hover { background-color: #0f172a; }
+
+        .mobile-toggle { display: none; background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #1e293b; }
+        .mobile-menu { display: none; }
+
+        /* --- RESPONSIVIDADE (Mobile/Tablet < 900px) --- */
+        @media (max-width: 900px) {
           .navbar { width: 95%; top: 10px; }
           .nav-content { padding: 0.8rem 1rem; }
-          .user-welcome { display: none; } /* Esconde o "Olá user" em ecrãs pequenos */
+          
+          /* Esconder elementos Desktop */
+          .desktop-links, .desktop-actions { display: none; }
+          
+          /* Mostrar Toggle */
+          .mobile-toggle { display: block; }
+
+          /* Menu Mobile (Dropdown) */
+          .mobile-menu {
+            display: block; overflow: hidden;
+            max-height: 0; opacity: 0;
+            transition: all 0.3s ease-in-out;
+            background: rgba(255, 255, 255, 0.98);
+            border-bottom-left-radius: 16px; border-bottom-right-radius: 16px;
+          }
+          
+          .mobile-menu.open {
+            max-height: 400px; opacity: 1;
+            padding: 1rem 1.5rem 1.5rem 1.5rem;
+            border-top: 1px solid #f1f5f9;
+          }
+
+          .mobile-menu a { 
+            display: block; padding: 10px 0; 
+            color: #334155; text-decoration: none; font-weight: 500; 
+            border-bottom: 1px solid #f8fafc;
+          }
+          
+          .mobile-user-info { font-size: 0.9rem; color: #64748b; margin-bottom: 10px; }
+          .mobile-divider { height: 10px; }
+          
+          .mobile-admin-link { color: #4f46e5 !important; font-weight: 700 !important; }
+          
+          .mobile-logout {
+            width: 100%; margin-top: 15px; padding: 10px;
+            background: #fee2e2; color: #ef4444; font-weight: 600;
+            border: none; border-radius: 8px; cursor: pointer;
+          }
+
+          .mobile-auth { display: flex; flex-direction: column; gap: 10px; }
+          .block { display: block; text-align: center; width: 100%; box-sizing: border-box; }
         }
       `}</style>
     </nav>

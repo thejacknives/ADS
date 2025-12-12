@@ -25,6 +25,10 @@ async function request(endpoint: string, options: RequestInit = {}) {
     throw new Error(errorData.error || 'Ocorreu um erro no servidor');
   }
 
+  if (response.status === 204) {
+    return null;
+  }
+
   return response.json();
 }
 
@@ -77,5 +81,22 @@ export const api = {
     getMovie: (id: number) => request(`/movies/${id}/`),
 
     getUserRecommendations: () => request('/recommendations/mine/'),
+
+    addMovie: (movieData: any) => 
+    request('/admin/movies/add/', { 
+      method: 'POST', 
+      body: JSON.stringify(movieData) 
+    }),
+
+  updateMovie: (id: number, movieData: any) => 
+    request(`/admin/movies/${id}/edit/`, { 
+      method: 'PUT', 
+      body: JSON.stringify(movieData) 
+    }),
+
+  deleteMovie: (id: number) => 
+    request(`/admin/movies/${id}/delete/`, { 
+      method: 'DELETE' 
+    }),
 
 };
