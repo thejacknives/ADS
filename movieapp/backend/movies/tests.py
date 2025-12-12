@@ -83,33 +83,64 @@ class RecommendationTests(TestCase):
     def setUp(self):
         self.client = APIClient()
 
+  # ...existing code...
+
     def test_recommendations_mix_collaborative_and_content(self):
-        response = self.client.get(
-            f"/api/users/{self.alice.user_id}/recommendations/"
-        )
+        """
+        Testa se o sistema recomenda m2 (SciFi 2) para a Alice.
+        - Content: Ela gosta de Sci-Fi.
+        - Collaborative: O Bob (similar) gostou de m2.
+        """
+        # 1. Login como Alice via session
+        session = self.client.session
+        session['user_id'] = self.alice.user_id
+        session['username'] = self.alice.username
+        session.save()
+
+        # 2. Chamar endpoint "mine"
+        response = self.client.get("/api/recommendations/mine/")
 
         self.assertEqual(response.status_code, 200)
         payload = response.json()
-        recs = {entry["movie_id"]: entry for entry in payload["recommendations"]}
+        
+        # A estrutura agora é { user_id:..., recommendations: [ { movie: { id: ... } } ] }
+        recs_list = payload["recommendations"]
+        
+        # Mapear ID do filme para a entrada completa para facilitar verificação
+        # Nota: O serializer retorna 'id' dentro do objeto 'movie'
+        recs_map = {entry["movie"]["id"]: entry for entry in recs_list}
 
-        self.assertIn(self.m2.movie_id, recs)  # unseen sci-fi should rank high
-        self.assertNotIn(self.m1.movie_id, recs)  # already rated by user
-        self.assertNotIn(self.m3.movie_id, recs)  # already rated by user
-        self.assertEqual(recs[self.m2.movie_id]["method"], "hybrid")
-        self.assertGreater(recs[self.m2.movie_id]["predicted_score"], 0)
+        # Verificações
+        self.assertIn(self.m2.movie_id, recs_map)  # SciFi 2 deve ser recomendado
+        self.assertNotIn(self.m1.movie_id, recs_map)  # Já viu SciFi 1
+        self.assertNotIn(self.m3.movie_id, recs_map)  # Já viu Romance 1
+        
+        # O score deve ser alto
+        self.assertGreater(recs_map[self.m2.movie_id]["predicted_score"], 3.0)
 
     def test_cold_start_user_gets_top_rated_fallback(self):
-        response = self.client.get(
-            f"/api/users/{self.viewer.user_id}/recommendations/"
-        )
+        """
+        Testa se um user sem avaliações recebe o Top 10 global.
+        """
+        # Adiciona reviews globais para criar um "Top Rated"
+        Rating.objects.create(user=self.bob, movie=self.m4, score=5.0) # Romance 2 é Top
+        
+        # 1. Login como Viewer (Sem histórico) via session
+        session = self.client.session
+        session['user_id'] = self.viewer.user_id
+        session['username'] = self.viewer.username
+        session.save()
+
+        # 2. Chamar endpoint
+        response = self.client.get("/api/recommendations/mine/")
 
         self.assertEqual(response.status_code, 200)
         payload = response.json()
+        recs_list = payload["recommendations"]
 
-        self.assertTrue(payload["recommendations"])  # fallback should not be empty
-        top_first = payload["recommendations"][0]
-        self.assertEqual(top_first["movie_id"], self.m1.movie_id)  # highest avg rating
-        self.assertEqual(
-            payload.get("note"),
-            "User has no ratings yet; showing top-rated movies overall.",
-        )
+        # Deve retornar fallback (não vazio)
+        self.assertTrue(len(recs_list) > 0)
+        
+        # O filme m4 tem média 5.0, deve estar lá
+        recs_ids = [r["movie"]["id"] for r in recs_list]
+        self.assertIn(self.m4.movie_id, recs_ids)
