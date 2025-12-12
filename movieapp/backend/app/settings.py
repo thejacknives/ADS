@@ -86,6 +86,8 @@ CORS_ALLOW_ALL_ORIGINS = False
 CORS_ALLOWED_ORIGINS = [
     "http://127.0.0.1:5173",
     "http://localhost:5173",
+    "https://movieapp-frontend-kbj7.onrender.com",
+
 ]
 
 # Permitir o envio de cookies de sessão
@@ -95,6 +97,7 @@ CORS_ALLOW_CREDENTIALS = True
 CSRF_TRUSTED_ORIGINS = [
     "http://127.0.0.1:5173",
     "http://localhost:5173",
+    "https://movieapp-frontend-kbj7.onrender.com",
 ]
 
 # Basic DRF default permissions (open for now)
