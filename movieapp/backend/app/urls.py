@@ -14,7 +14,7 @@ from movies.views import (
     get_movie_ratings,
     list_my_ratings,
     list_my_recommendations,
-    #get_movie_details,
+    get_movie_details,
     admin_add_movie,
     admin_edit_movie,
     admin_delete_movie,
