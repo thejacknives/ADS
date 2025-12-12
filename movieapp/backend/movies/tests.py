@@ -621,8 +621,12 @@ class SystemAdministrationTests(TestCase):
 
     def test_add_movie_requires_admin(self):
         """Adding a movie requires admin role."""
-        self.client.session.flush()
-        self._login_regular()
+        # Clear session and login as regular user
+        session = self.client.session
+        session.clear()
+        session['user_id'] = self.regular_user.user_id
+        session['username'] = self.regular_user.username
+        session.save()
         
         payload = {"title": "Test", "genre": "Drama", "description": "Desc"}
         resp = self._post_add(payload)
@@ -716,8 +720,12 @@ class SystemAdministrationTests(TestCase):
         movie = Movie.objects.create(
             title='Original', genre='Drama', description='Desc'
         )
-        self.client.session.flush()
-        self._login_regular()
+        # Clear session and login as regular user
+        session = self.client.session
+        session.clear()
+        session['user_id'] = self.regular_user.user_id
+        session['username'] = self.regular_user.username
+        session.save()
         
         payload = {"title": "Updated", "genre": "Action", "description": "New"}
         resp = self._put_edit(movie.movie_id, payload)
@@ -819,8 +827,12 @@ class SystemAdministrationTests(TestCase):
         movie = Movie.objects.create(
             title='To Delete', genre='Drama', description='Desc'
         )
-        self.client.session.flush()
-        self._login_regular()
+        # Clear session and login as regular user
+        session = self.client.session
+        session.clear()
+        session['user_id'] = self.regular_user.user_id
+        session['username'] = self.regular_user.username
+        session.save()
         
         resp = self._delete_movie(movie.movie_id)
         self.assertEqual(resp.status_code, 403)
@@ -855,8 +867,12 @@ class SystemAdministrationTests(TestCase):
 
     def test_statistics_requires_admin(self):
         """Statistics endpoint requires admin role."""
-        self.client.session.flush()
-        self._login_regular()
+        # Clear session and login as regular user
+        session = self.client.session
+        session.clear()
+        session['user_id'] = self.regular_user.user_id
+        session['username'] = self.regular_user.username
+        session.save()
         
         resp = self._get_stats()
         self.assertEqual(resp.status_code, 403)
