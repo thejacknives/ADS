@@ -17,6 +17,8 @@ from rest_framework import status
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from .models import AppUser, Movie, Rating, Recommendation
+from django.db.models import Avg, Count, Q
+import random
 
 #test
 def _validate_user_payload(username, email, password):
@@ -163,6 +165,97 @@ def _predict_collaborative_scores(target_user, user_ratings_map):
         if bucket["weight"] > 0
     }
 
+def _generate_recommendations(user):
+    """
+    Gera recomendações com 3 níveis de tentativa:
+    1. Híbrido (Se tiver histórico e matches)
+    2. Top Global (Se for user novo ou algoritmo falhar)
+    3. Aleatório (Se o sistema estiver vazio de ratings e precisar de encher chouriços)
+    """
+    
+    # Busca histórico do user
+    user_ratings = list(Rating.objects.filter(user=user).select_related('movie'))
+    
+    # Lista de IDs que o user já viu (para não recomendar repetidos)
+    watched_ids = {r.movie_id for r in user_ratings}
+    
+    top_entries = []
+
+    # --- FASE 1: Tentar Algoritmo Personalizado (Só se o user tiver histórico) ---
+    if user_ratings:
+        user_ratings_map = {r.movie_id: r.score for r in user_ratings}
+        candidates = list(Movie.objects.exclude(movie_id__in=watched_ids))
+        
+        if candidates:
+            genre_preferences = _calculate_genre_preferences(user_ratings)
+            content_predictions = _predict_content_scores(candidates, genre_preferences)
+            collaborative_predictions = _predict_collaborative_scores(user, user_ratings_map)
+
+            combined = []
+            for movie in candidates:
+                collab = collaborative_predictions.get(movie.movie_id)
+                content = content_predictions.get(movie.movie_id)
+                
+                if collab is None and content is None:
+                    continue
+                
+                if collab is None: score = content
+                elif content is None: score = collab
+                else: score = (0.6 * collab) + (0.4 * content)
+
+                combined.append({'movie': movie, 'predicted_score': score})
+            
+            combined.sort(key=lambda x: x['predicted_score'], reverse=True)
+            top_entries = combined[:10]
+
+    # --- FASE 2: Fallback para Top Global (Se Fase 1 falhou ou User é Novo) ---
+    # Se ainda não temos 10 filmes, vamos buscar os melhores da BD
+    if len(top_entries) < 10:
+        needed = 10 - len(top_entries)
+        
+        # CORREÇÃO AQUI: .filter(avg__isnull=False) garante que tem ratings!
+        top_global = Movie.objects.exclude(movie_id__in=watched_ids)\
+            .annotate(avg=Avg('ratings__score'))\
+            .filter(avg__isnull=False)\
+            .order_by('-avg')[:needed]
+        
+        for movie in top_global:
+            # Já sabemos que tem avg, mas por segurança fazemos cast
+            score = float(movie.avg) if movie.avg else 0.0
+            
+            # Evita duplicados caso já tenha vindo da Fase 1 (raro mas possível)
+            if not any(e['movie'].movie_id == movie.movie_id for e in top_entries):
+                top_entries.append({'movie': movie, 'predicted_score': score})
+
+    # --- FASE 3: Fallback Final (Se Fase 2 não chegou - BD com poucos ratings) ---
+    # Se mesmo assim não temos 10 filmes (ex: BD nova, ninguém avaliou nada),
+    # enchemos com filmes aleatórios para não mostrar ecrã vazio.
+    if len(top_entries) < 10:
+        current_ids = {e['movie'].movie_id for e in top_entries}
+        exclude_ids = watched_ids.union(current_ids)
+        
+        needed = 10 - len(top_entries)
+        # Traz quaisquer filmes que faltem
+        fillers = list(Movie.objects.exclude(movie_id__in=exclude_ids)[:needed])
+        
+        for movie in fillers:
+            # Score 0 porque são fillers
+            top_entries.append({'movie': movie, 'predicted_score': 0})
+
+    # --- SALVAR ---
+    if top_entries:
+        Recommendation.objects.filter(user=user).delete()
+        Recommendation.objects.bulk_create([
+            Recommendation(
+                user=user,
+                movie=entry['movie'],
+                predicted_score=round(entry['predicted_score'], 2),
+            )
+            for entry in top_entries
+        ])
+        return True
+    
+    return False
 
 @api_view(['GET'])
 def user_list(request):
@@ -253,150 +346,6 @@ def logout_user(request):
     return Response({'message': 'Logout successful'})
 
 
-@api_view(['GET'])
-def user_recommendations(request, user_id):
-    """
-    Generate hybrid (collaborative + content) recommendations for a user.
-    """
-    try:
-        user = AppUser.objects.get(user_id=user_id)
-    except AppUser.DoesNotExist:
-        return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
-
-    user_ratings = list(
-        Rating.objects.filter(user=user).select_related('movie')
-    )
-
-    if not user_ratings:
-        fallback = (
-            Movie.objects.annotate(avg_score=Avg('ratings__score'))
-            .filter(avg_score__isnull=False)
-            .order_by('-avg_score')[:10]
-        )
-        suggestions = [
-            {
-                'movie_id': movie.movie_id,
-                'title': movie.title,
-                'genre': movie.genre,
-                'description': movie.description,
-                'predicted_score': round(movie.avg_score, 2) if movie.avg_score else None,
-                'method': 'global_top_rated',
-            }
-            for movie in fallback
-        ]
-        return Response(
-            {
-                'user': _serialize_user(user),
-                'recommendations': suggestions,
-                'note': 'User has no ratings yet; showing top-rated movies overall.',
-            }
-        )
-
-    user_movie_ids = {rating.movie_id for rating in user_ratings}
-    user_ratings_map = {rating.movie_id: rating.score for rating in user_ratings}
-
-    candidates = list(
-        Movie.objects.exclude(movie_id__in=user_movie_ids)
-    )
-    if not candidates:
-        return Response(
-            {
-                'user': _serialize_user(user),
-                'recommendations': [],
-                'note': 'User has already rated every movie.',
-            }
-        )
-
-    genre_preferences = _calculate_genre_preferences(user_ratings)
-    content_predictions = _predict_content_scores(candidates, genre_preferences)
-    collaborative_predictions = _predict_collaborative_scores(user, user_ratings_map)
-
-    combined = []
-    for movie in candidates:
-        collab_score = collaborative_predictions.get(movie.movie_id)
-        content_score = content_predictions.get(movie.movie_id)
-        if collab_score is None and content_score is None:
-            continue
-
-        if collab_score is None:
-            final_score = content_score
-            method = 'content'
-        elif content_score is None:
-            final_score = collab_score
-            method = 'collaborative'
-        else:
-            final_score = (0.6 * collab_score) + (0.4 * content_score)
-            method = 'hybrid'
-
-        combined.append({
-            'movie': movie,
-            'predicted_score': final_score,
-            'collaborative_score': collab_score,
-            'content_score': content_score,
-            'method': method,
-        })
-
-    if not combined:
-        fallback = (
-            Movie.objects.exclude(movie_id__in=user_movie_ids)
-            .annotate(avg_score=Avg('ratings__score'))
-            .filter(avg_score__isnull=False)
-            .order_by('-avg_score')[:10]
-        )
-        suggestions = [
-            {
-                'movie_id': movie.movie_id,
-                'title': movie.title,
-                'genre': movie.genre,
-                'description': movie.description,
-                'predicted_score': round(movie.avg_score, 2) if movie.avg_score else None,
-                'method': 'global_top_rated',
-            }
-            for movie in fallback
-        ]
-        return Response(
-            {
-                'user': _serialize_user(user),
-                'recommendations': suggestions,
-                'note': 'Not enough data to build personalized predictions; falling back to global scores.',
-            }
-        )
-
-    combined.sort(key=lambda entry: entry['predicted_score'], reverse=True)
-    top_entries = combined[:10]
-
-    Recommendation.objects.filter(user=user).delete()
-    Recommendation.objects.bulk_create([
-        Recommendation(
-            user=user,
-            movie=entry['movie'],
-            predicted_score=round(entry['predicted_score'], 2),
-        )
-        for entry in top_entries
-    ])
-
-    response_payload = [
-        {
-            'movie_id': entry['movie'].movie_id,
-            'title': entry['movie'].title,
-            'genre': entry['movie'].genre,
-            'description': entry['movie'].description,
-            'predicted_score': round(entry['predicted_score'], 2),
-            'components': {
-                'collaborative': round(entry['collaborative_score'], 2) if entry['collaborative_score'] is not None else None,
-                'content': round(entry['content_score'], 2) if entry['content_score'] is not None else None,
-            },
-            'method': entry['method'],
-        }
-        for entry in top_entries
-    ]
-
-    return Response(
-        {
-            'user': _serialize_user(user),
-            'recommendations': response_payload,
-        }
-    )
 
 def _check_user_logged_in(request):
     """
@@ -464,6 +413,10 @@ def create_rating(request, movie_id):
         movie_id=movie_id,
         user_id=user_id,
     )
+
+    user = AppUser.objects.get(user_id=user_id)
+    _generate_recommendations(user)
+
     return Response(
         {
             'message': 'Rating created successfully',
@@ -587,6 +540,9 @@ def edit_rating(request, rating_id):
     rating.score = rating_int
     rating.save()
 
+    user = AppUser.objects.get(user_id=user_id)
+    _generate_recommendations(user)
+
     return Response(
         {
             'message': 'Rating updated successfully',
@@ -628,6 +584,9 @@ def delete_rating(request, rating_id):
     
     # delete the rating
     rating.delete()
+
+    user = AppUser.objects.get(user_id=user_id)
+    _generate_recommendations(user)
 
     return Response(
         {'message': 'Rating deleted successfully'},
@@ -682,46 +641,50 @@ def list_my_ratings(request):
 @api_view(['GET'])
 def list_my_recommendations(request):
     """
-    List all recommendations for the logged-in user.
+    Lista as recomendações do utilizador.
+    Se a lista estiver vazia, tenta gerar novas automaticamente.
     """
-
-    # check if user is logged in
     error_response, user_id = _check_user_logged_in(request)
     if error_response:
         return error_response
     
-    # get all recommendations for the user
-    recommendations = Recommendation.objects.filter(user_id=user_id)
+    # Precisamos do objeto user para as queries
+    try:
+        user = AppUser.objects.get(user_id=user_id)
+    except AppUser.DoesNotExist:
+        return Response({'error': 'User not found'}, status=404)
 
+    # 1. Tenta buscar o que já existe
+    recommendations = Recommendation.objects.filter(user=user).select_related('movie').order_by('-predicted_score')
+
+    # 2. Lógica "Lazy Loading": Se não existe nada, chama o Helper!
     if not recommendations.exists():
-        return Response(
-            {
-                'user_id': user_id,
-                'total_recommendations': 0,
-                'recommendations': [],
-            },
-            status=status.HTTP_200_OK,
-        )
-    
-    # convert django object to json
-    recommendations_data = []
+        has_generated = _generate_recommendations(user)
+        if has_generated:
+            # Se gerou, recarrega a query para apanhar os dados novos
+            recommendations = Recommendation.objects.filter(user=user).select_related('movie').order_by('-predicted_score')
+
+    # 3. Serializar para JSON
+    data = []
     for rec in recommendations:
-        recommendations_data.append({
+        # Importante: include_details=True para vir a Capa e o Título
+        movie_data = _serialize_movie(rec.movie, include_details=True)
+        
+        data.append({
             'rec_id': rec.rec_id,
             'predicted_score': rec.predicted_score,
-            'movie_id': rec.movie_id,
+            'movie': movie_data 
         })
-
-    total_recommendations = recommendations.count()
 
     return Response(
         {
             'user_id': user_id,
-            'total_recommendations': total_recommendations,
-            'recommendations': recommendations_data,
+            'total_recommendations': recommendations.count(),
+            'recommendations': data,
         },
         status=status.HTTP_200_OK,
     )
+
 
 def _check_user_is_admin(user_id):
     """
@@ -743,6 +706,7 @@ def _check_user_is_admin(user_id):
     
     return None, user
 
+'''
 @api_view(['GET'])
 def get_movie_details(request, movie_id):
     """
@@ -766,7 +730,7 @@ def get_movie_details(request, movie_id):
         return Response(
             {'error': 'Filme não encontrado'}, 
             status=404
-        )
+        )'''
 
 @api_view(['POST'])
 def admin_add_movie(request):
