@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { api } from '../services/api';
-import { Link } from 'react-router-dom'; // <--- Importante para a navegação
+import { Link } from 'react-router-dom';
 
 interface Movie {
   id: number;
@@ -118,13 +118,6 @@ export function Movies() {
     } catch (err) { console.error("Erro ratings", err); }
   };
 
-  const showSuccessMessage = (movieId: number) => {
-    setSuccessMap(prev => ({ ...prev, [movieId]: 'Guardado!' }));
-    setTimeout(() => {
-      setSuccessMap(prev => { const n = { ...prev }; delete n[movieId]; return n; });
-    }, 2000);
-  };
-
   const handleRate = async (movieId: number, score: number) => {
     const existingRating = myRatingsMap[movieId];
     const tempRatingId = existingRating?.rating_id || -1;
@@ -142,7 +135,13 @@ export function Movies() {
             }));
          }
       }
-      showSuccessMessage(movieId);
+      
+      // Feedback Visual Temporário
+      setSuccessMap(prev => ({ ...prev, [movieId]: 'Guardado!' }));
+      setTimeout(() => {
+        setSuccessMap(prev => { const n = { ...prev }; delete n[movieId]; return n; });
+      }, 2000);
+
     } catch (err: any) {
       console.error(err);
       if (existingRating) setMyRatingsMap(prev => ({ ...prev, [movieId]: existingRating }));
@@ -156,41 +155,48 @@ export function Movies() {
   };
 
   return (
-    <div style={{ width: '100%', padding: '0 40px', boxSizing: 'border-box' }}>
+    <div className="page-container">
       
-      {/* HEADER E FILTROS */}
-      <header style={{ marginBottom: '2rem', maxWidth: '1400px', margin: '0 auto 2rem auto' }}>
-        <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '20px'}}>
-          <h2>🍿 Filmes Disponíveis</h2>
+      {/* --- HEADER E CONTROLO --- */}
+      <section className="controls-section">
+        
+        <div className="top-bar">
+          <div className="page-title-group">
+            <h2 className="page-title">🍿 Catálogo</h2>
+            <span className="page-subtitle">Explora todos os filmes disponíveis</span>
+          </div>
           
-          <div style={{display: 'flex', gap: '10px', alignItems: 'center'}}>
-             <input 
-              type="text" 
-              placeholder="Pesquisar título, realizador..." 
-              value={searchTerm}
-              onChange={e => setSearchTerm(e.target.value)}
-              className="input-field"
-              style={{ width: '300px', padding: '10px 15px' }}
-            />
+          <div className="actions-group">
+             <div className="search-wrapper">
+               <span className="search-icon">🔍</span>
+               <input 
+                type="text" 
+                placeholder="Pesquisar..." 
+                value={searchTerm}
+                onChange={e => setSearchTerm(e.target.value)}
+                className="search-input"
+              />
+             </div>
             
             <button 
-              className={`btn ${showFilters ? 'btn-primary' : 'btn-outline'}`}
+              className={`btn-toggle-filter ${showFilters ? 'active' : ''}`}
               onClick={() => setShowFilters(!showFilters)}
-              style={{display: 'flex', alignItems: 'center', gap: '5px'}}
             >
-              🌪️ Filtros
+              <span style={{fontSize: '1.1rem'}}>🌪️</span>
+              <span>Filtros</span>
             </button>
           </div>
         </div>
 
-        {showFilters && (
-          <div className="filters-panel">
-            <div className="filter-group">
-              <label>Género:</label>
+        {/* --- PAINEL DE FILTROS (Slide Down) --- */}
+        <div className={`filters-drawer ${showFilters ? 'open' : ''}`}>
+          <div className="filters-content">
+            
+            <div className="filter-item">
+              <label>Género</label>
               <select
                 value={filters.genre}
                 onChange={e => handleFilterChange('genre', e.target.value)}
-                className="input-field small"
               >
                 <option value="">Todos</option>
                 {availableGenres.map(g => (
@@ -199,62 +205,62 @@ export function Movies() {
               </select>
             </div>
 
-            <div className="filter-group">
-              <label>Ano:</label>
-              <div style={{display:'flex', gap:'5px'}}>
+            <div className="filter-item">
+              <label>Ano</label>
+              <div className="row-inputs">
                 <input 
                   type="number" placeholder="Min" 
                   value={filters.year_min}
                   onChange={e => handleFilterChange('year_min', e.target.value)}
-                  className="input-field small" style={{width: '60px'}}
                 />
+                <span style={{color:'#cbd5e1'}}>-</span>
                 <input 
                   type="number" placeholder="Max" 
                   value={filters.year_max}
                   onChange={e => handleFilterChange('year_max', e.target.value)}
-                  className="input-field small" style={{width: '60px'}}
                 />
               </div>
             </div>
 
-            <div className="filter-group">
-              <label>Rating Min ({filters.rating_min}★):</label>
+            <div className="filter-item">
+              <label>Rating Mínimo: <span className="highlight-val">{filters.rating_min}★</span></label>
               <input 
                 type="range" min="0" max="5" step="0.5"
                 value={filters.rating_min}
                 onChange={e => handleFilterChange('rating_min', parseFloat(e.target.value))}
-                style={{cursor: 'pointer'}}
+                className="range-input"
               />
             </div>
 
-            <div className="filter-group">
-              <label>Ordenar:</label>
+            <div className="filter-item">
+              <label>Ordenar</label>
               <select 
                 value={filters.sort}
                 onChange={e => handleFilterChange('sort', e.target.value)}
-                className="input-field small"
               >
-                <option value="title">Título</option>
-                <option value="year">Ano</option>
-                <option value="rating">Rating</option>
+                <option value="title">A-Z</option>
+                <option value="year">Mais Recentes</option>
+                <option value="rating">Melhor Nota</option>
               </select>
             </div>
             
-            <button 
-              className="btn btn-outline" 
-              style={{fontSize: '0.8rem', padding: '5px 10px', height: 'fit-content', alignSelf: 'flex-end'}}
-              onClick={() => {
-                setFilters({genre: '', year_min: '', year_max: '', rating_min: 0, sort: 'title'});
-                setSearchTerm('');
-              }}
-            >
-              Limpar
-            </button>
-          </div>
-        )}
-      </header>
+            <div className="filter-actions">
+              <button 
+                className="btn-link-reset" 
+                onClick={() => {
+                  setFilters({genre: '', year_min: '', year_max: '', rating_min: 0, sort: 'title'});
+                  setSearchTerm('');
+                }}
+              >
+                Limpar filtros
+              </button>
+            </div>
 
-      {error && <div className="alert alert-error" style={{maxWidth: '1400px', margin: '0 auto 1rem auto'}}>{error}</div>}
+          </div>
+        </div>
+      </section>
+
+      {error && <div className="alert alert-error">{error}</div>}
 
       {loading && (
         <div style={{textAlign: 'center', margin: '50px 0'}}>
@@ -263,11 +269,12 @@ export function Movies() {
       )}
 
       {!loading && movies.length === 0 ? (
-        <div style={{textAlign: 'center', color: '#64748b', marginTop: '50px'}}>
-          Nenhum filme encontrado.
+        <div className="empty-state">
+          <h3>Nenhum filme encontrado.</h3>
+          <p>Tenta uma pesquisa diferente ou limpa os filtros.</p>
         </div>
       ) : (
-        <div className="movies-list">
+        <div className="movies-grid">
           {movies.map((movie) => {
             const mId = movie.id;
             const myRatingData = myRatingsMap[mId];
@@ -278,8 +285,7 @@ export function Movies() {
             return (
               <div key={mId} className={cardClass}>
                 
-                {/* 1. Capa (Com Link para Detalhes) */}
-                <Link to={`/movies/${mId}`} className="poster-wrapper" style={{cursor: 'pointer'}}>
+                <Link to={`/movies/${mId}`} className="poster-area">
                   {movie.poster_url ? (
                     <img src={movie.poster_url} alt={movie.title} />
                   ) : (
@@ -287,46 +293,34 @@ export function Movies() {
                   )}
                 </Link>
 
-                <div className="card-content">
+                <div className="info-area">
                   <div style={{ flex: 1 }}>
-                    {/* 2. Título (Com Link) */}
                     <h3 className="card-title">
-                      <Link to={`/movies/${mId}`} style={{textDecoration: 'none', color: 'inherit'}}>
-                        {movie.title}
-                      </Link>
+                      <Link to={`/movies/${mId}`}>{movie.title}</Link>
                     </h3>
                     
-                    {/* 3. Metadados na mesma linha (Ano, Género, Director) */}
-                    <div className="meta-tags">
-                      <span className="tag">{movie.year}</span>
-                      <span className="tag">{movie.genre}</span>
-                      {movie.director && <span className="tag">🎥 {movie.director}</span>}
+                    <div className="tags-row">
+                      <span className="pill">{movie.year}</span>
+                      <span className="pill">{movie.genre}</span>
+                      {movie.director && <span className="pill director-pill">🎥 {movie.director}</span>}
                     </div>
 
-                    {/* 4. Descrição por baixo */}
-                    <p className="card-desc">
+                    <p className="description">
                       {movie.description || 'Sem descrição.'}
                     </p>
                   </div>
 
-                  {/* 5. Footer Dividido */}
-                  <div className="card-footer">
-                     
-                     {/* Esquerda: Interação do User */}
-                     <div className="user-action-area">
+                  <div className="actions-footer">
+                     <div className="left-action">
                        {successMsg ? (
-                         <span style={{color: '#16a34a', fontWeight: 'bold', fontSize: '0.9rem'}}>
-                           ✓ {successMsg}
-                         </span>
+                         <span className="msg-success">✓ Guardado!</span>
                        ) : myScore ? (
-                         <div className="rating-success">
-                           ✓ A tua avaliação: <strong style={{marginLeft:'5px', color:'#b45309'}}>{myScore} ★</strong>
+                         <div className="user-score-badge">
+                           ✓ Tu: <strong>{myScore}★</strong>
                          </div>
                        ) : (
-                         <div className="rating-area">
-                           <span style={{fontSize: '0.75rem', color: '#94a3b8', marginRight: '5px', textTransform: 'uppercase', fontWeight: 600}}>
-                             Classificar:
-                           </span>
+                         <div className="rate-interactive">
+                           <span className="rate-label">Classificar:</span>
                            <InteractiveStarRating 
                              currentScore={0} 
                              onRate={(score) => handleRate(mId, score)} 
@@ -335,9 +329,8 @@ export function Movies() {
                        )}
                      </div>
 
-                     {/* Direita: Média Global */}
                      {movie.average_rating !== undefined && (
-                        <div className="global-rating" title="Média Global">
+                        <div className="global-score" title="Média Global">
                           ⭐ {Number(movie.average_rating).toFixed(1)}
                         </div>
                      )}
@@ -350,128 +343,141 @@ export function Movies() {
       )}
 
       <style>{`
-        /* --- ESTILOS GERAIS DA GRELHA E CARTÃO --- */
-        .movies-list { 
-          display: grid; 
-          grid-template-columns: repeat(auto-fill, minmax(480px, 1fr)); 
-          gap: 1.5rem; 
-          max-width: 1400px; 
-          margin: 0 auto; 
+        /* --- LAYOUT GLOBAL --- */
+        .page-container {
+          width: 100%; max-width: 1400px; margin: 0 auto;
+          padding: 0 40px 60px 40px; box-sizing: border-box;
         }
 
-        .movie-card { 
-          background: white; 
-          border-radius: 16px; 
-          overflow: hidden; 
-          box-shadow: var(--shadow); 
-          border: 1px solid #f1f5f9; 
-          transition: transform 0.2s; 
-          display: flex; 
-          flex-direction: row; 
-          height: 220px; /* Altura fixa para manter tudo alinhado */
+        /* --- HEADER & CONTROLOS --- */
+        .controls-section { margin-bottom: 2rem; background: white; }
+        
+        .top-bar { 
+          display: flex; justify-content: space-between; align-items: center; 
+          flex-wrap: wrap; gap: 20px; padding: 10px 0; 
         }
         
-        .movie-card.rated { opacity: 0.95; background-color: #fcfdfe; border-color: #e2e8f0; }
-        .movie-card:hover { transform: translateY(-4px); border-color: var(--primary); opacity: 1; }
+        .page-title { margin: 0; font-size: 2rem; color: #1e293b; letter-spacing: -0.5px; }
+        .page-subtitle { color: #64748b; font-size: 0.95rem; margin-left: 2px; }
+        
+        .actions-group { display: flex; gap: 12px; align-items: center; }
 
-        /* --- CAPA --- */
-        .poster-wrapper { width: 150px; height: 100%; background: #e0e7ff; flex-shrink: 0; }
-        .poster-wrapper img { width: 100%; height: 100%; object-fit: cover; }
+        .search-wrapper { position: relative; display: flex; align-items: center; }
+        .search-icon { position: absolute; left: 12px; color: #94a3b8; font-size: 0.9rem; pointer-events: none; }
+        .search-input { 
+          padding: 10px 15px 10px 36px; border: 1px solid #cbd5e1; border-radius: 8px; 
+          font-size: 0.95rem; width: 280px; outline: none; transition: all 0.2s; color: #1e293b; 
+        }
+        .search-input:focus { border-color: #4f46e5; box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1); }
+
+        .btn-toggle-filter { 
+          display: flex; align-items: center; gap: 6px; padding: 10px 16px; 
+          background: white; border: 1px solid #cbd5e1; border-radius: 8px; 
+          color: #475569; font-weight: 600; font-size: 0.9rem; cursor: pointer; transition: all 0.2s; 
+        }
+        .btn-toggle-filter:hover { background: #f8fafc; border-color: #94a3b8; }
+        .btn-toggle-filter.active { background: #eef2ff; border-color: #4f46e5; color: #4f46e5; }
+
+        /* --- FILTROS (Igual ao anterior) --- */
+        .filters-drawer { max-height: 0; overflow: hidden; transition: max-height 0.3s ease-in-out, opacity 0.3s; opacity: 0; }
+        .filters-drawer.open { max-height: 300px; opacity: 1; margin-top: 10px; }
+        .filters-content { 
+          background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; 
+          padding: 20px 25px; display: flex; alignItems: flex-end; gap: 25px; flex-wrap: wrap; 
+        }
+        .filter-item { display: flex; flexDirection: column; gap: 6px; }
+        .filter-item label { font-size: 0.75rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; }
+        .filter-item select, .filter-item input[type="number"] { 
+          padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 6px; 
+          font-size: 0.9rem; color: #334155; background: white; outline: none; 
+        }
+        .filter-item select:focus, .filter-item input:focus { border-color: #4f46e5; }
+        .row-inputs { display: flex; align-items: center; gap: 8px; }
+        .row-inputs input { width: 70px; }
+        .highlight-val { color: #4f46e5; font-weight: 700; }
+        .range-input { accent-color: #4f46e5; cursor: pointer; }
+        .filter-actions { margin-left: auto; padding-bottom: 2px; }
+        .btn-link-reset { 
+          background: none; border: none; color: #64748b; font-size: 0.85rem; 
+          font-weight: 600; cursor: pointer; text-decoration: underline; transition: color 0.2s; 
+        }
+        .btn-link-reset:hover { color: #ef4444; }
+
+        /* --- GRELHA DE FILMES (A CORREÇÃO) --- */
+        .movies-grid {
+          display: grid;
+          /* FORÇA 2 COLUNAS: Como 600px * 3 = 1800px (>1400px), o browser só permite 2 colunas. */
+          grid-template-columns: repeat(auto-fill, minmax(600px, 1fr));
+          gap: 1.5rem;
+        }
+
+        .movie-card {
+          background: white; border-radius: 16px; border: 1px solid #f1f5f9;
+          box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); overflow: hidden;
+          display: flex; 
+          height: 220px; /* Altura fixa voltou para alinhar tudo */
+          transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .movie-card:hover { 
+          transform: translateY(-4px); 
+          box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); 
+          border-color: #e2e8f0; 
+        }
+        .movie-card.rated { background-color: #fafbfc; opacity: 0.95; }
+
+        .poster-area { 
+          width: 150px; flex-shrink: 0; background: #e0e7ff; position: relative; 
+        }
+        .poster-area img { width: 100%; height: 100%; object-fit: cover; }
         .poster-placeholder { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 3rem; color: #a5b4fc; }
 
-        /* --- CONTEÚDO --- */
-        .card-content { 
-          padding: 1.2rem; 
-          display: flex; 
-          flex-direction: column; 
-          flex-grow: 1; 
-          justify-content: space-between; /* Garante que o footer fica no fundo */
+        .info-area {
+          flex-grow: 1; padding: 1.2rem;
+          display: flex; flex-direction: column; 
+          justify-content: space-between; /* Garante footer no fundo */
           overflow: hidden;
         }
 
-        .card-title { margin: 0; font-size: 1.25rem; color: var(--text-main); font-weight: 700; line-height: 1.2; }
-        .card-title a:hover { color: var(--primary) !important; }
+        .card-title { margin: 0; font-size: 1.2rem; font-weight: 700; line-height: 1.2; }
+        .card-title a { color: #1e293b; text-decoration: none; transition: color 0.2s; }
+        .card-title a:hover { color: #4f46e5; }
 
-        /* Metadados na mesma linha */
-        .meta-tags { 
-          display: flex; 
-          flex-wrap: wrap; /* Permite quebrar linha se o ecrã for muito pequeno */
-          gap: 8px; 
-          margin-top: 6px; 
-          align-items: center;
+        .tags-row { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
+        .pill { 
+          background: #f1f5f9; color: #64748b; padding: 2px 8px; 
+          border-radius: 4px; font-size: 0.75rem; font-weight: 600; white-space: nowrap; 
         }
         
-        .tag { 
-          background: #f1f5f9; 
-          color: #64748b; 
-          padding: 2px 8px; 
-          border-radius: 4px; 
-          font-size: 0.8rem; 
-          font-weight: 600; 
-          white-space: nowrap;
+        .description {
+          font-size: 0.9rem; color: #64748b; margin: 10px 0; line-height: 1.5;
+          display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
         }
 
-        .card-desc { 
-          font-size: 0.9rem; 
-          color: #64748b; 
-          margin: 10px 0; 
-          line-height: 1.5; 
-          /* Limita a 2 linhas para não estragar o layout */
-          display: -webkit-box; 
-          -webkit-line-clamp: 2; 
-          -webkit-box-orient: vertical; 
-          overflow: hidden; 
+        .actions-footer {
+          border-top: 1px solid #f1f5f9; padding-top: 10px; margin-top: auto;
+          display: flex; align-items: center; justify-content: space-between;
+          flex-shrink: 0; /* Nunca encolhe */
         }
 
-        /* --- RODAPÉ --- */
-        .card-footer { 
-          border-top: 1px solid #f1f5f9; 
-          padding-top: 10px; 
-          margin-top: auto;
-          display: flex; 
-          align-items: center; 
-          justify-content: space-between; /* Esquerda vs Direita */
-        }
+        .user-score-badge { background: #fef3c7; color: #b45309; padding: 4px 10px; border-radius: 6px; font-size: 0.85rem; font-weight: 600; white-space: nowrap; }
+        .rate-interactive { display: flex; align-items: center; gap: 5px; }
+        .rate-label { font-size: 0.7rem; text-transform: uppercase; color: #94a3b8; font-weight: 700; }
+        .msg-success { color: #16a34a; font-weight: bold; font-size: 0.9rem; }
+        .global-score { font-weight: 600; color: #334155; font-size: 0.9rem; background: #f8fafc; padding: 4px 8px; border-radius: 6px; white-space: nowrap; }
+        .empty-state { text-align: center; color: #64748b; margin-top: 50px; padding: 40px; border: 2px dashed #e2e8f0; border-radius: 16px; }
 
-        .rating-success { 
-          background: #fef3c7; 
-          color: #92400e; 
-          padding: 6px 12px; 
-          border-radius: 8px; 
-          font-size: 0.9rem; 
-          display: inline-flex; 
-          align-items: center; 
-        }
-
-        .rating-area { display: flex; align-items: center; }
-
-        .global-rating { 
-          font-weight: 700; 
-          color: #1e293b; 
-          background: #f1f5f9; 
-          padding: 5px 10px; 
-          border-radius: 8px; 
-          font-size: 0.95rem; 
-          display: flex; 
-          align-items: center; 
-          gap: 5px; 
-        }
-
-        /* --- FILTROS --- */
-        .filters-panel {
-          background: white; padding: 1.5rem; margin-top: 1rem; border-radius: 12px; border: 1px solid #e2e8f0;
-          box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); display: flex; gap: 2rem; align-items: flex-end; flex-wrap: wrap;
-          animation: slideDown 0.2s ease-out;
-        }
-        @keyframes slideDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
-        .filter-group { display: flex; flex-direction: column; gap: 5px; }
-        .filter-group label { font-size: 0.85rem; font-weight: 600; color: #64748b; }
-        .input-field.small { padding: 8px 10px; font-size: 0.9rem; }
-
-        @media (max-width: 600px) { 
-          .movies-list { grid-template-columns: 1fr; } 
-          .movie-card { height: auto; flexDirection: column; } 
-          .poster-wrapper { width: 100%; height: 200px; } 
+        @media (max-width: 768px) {
+          .page-container { padding: 0 20px 40px; }
+          .movies-grid { grid-template-columns: 1fr; } /* 1 coluna em mobile */
+          .movie-card { height: auto; flexDirection: column; min-height: 380px; }
+          .poster-area { width: 100%; height: 250px; }
+          
+          .top-bar { flex-direction: column; align-items: stretch; gap: 15px; }
+          .actions-group { width: 100%; }
+          .search-wrapper { flex-grow: 1; }
+          .search-input { width: 100%; }
+          .filters-content { flex-direction: column; align-items: stretch; gap: 15px; }
+          .filter-actions { margin-left: 0; margin-top: 10px; }
         }
       `}</style>
     </div>

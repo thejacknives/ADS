@@ -24,7 +24,7 @@ interface Feedback {
   message: string;
 }
 
-// --- Componente de Estrela ---
+// --- Componentes de Estrela ---
 function StarIcon({ fill, onClick, onMouseEnter, isInteractive }: { fill: number, onClick?: () => void, onMouseEnter?: () => void, isInteractive?: boolean }) {
   return (
     <svg 
@@ -58,7 +58,6 @@ function StarRating({ score, onRate, isEditing }: { score: number, onRate?: (n: 
     <div style={{ display: 'flex', gap: '2px' }} onMouseLeave={() => setHover(0)}>
       {[1, 2, 3, 4, 5].map((index) => {
         const currentVal = isEditing && hover > 0 ? hover : score;
-        
         let fill = 0;
         if (currentVal >= index) fill = 100;
         else if (currentVal >= index - 0.5) fill = 50;
@@ -83,8 +82,8 @@ export function MyRatings() {
   const [globalError, setGlobalError] = useState('');
   
   // Modos de Edição
-  const [manageMode, setManageMode] = useState(false); // O Toggle Global
-  const [editingId, setEditingId] = useState<number | null>(null); // Qual cartão está "aberto" para editar estrelas
+  const [manageMode, setManageMode] = useState(false);
+  const [editingId, setEditingId] = useState<number | null>(null);
 
   const [feedbackMap, setFeedbackMap] = useState<Record<number, Feedback>>({});
   const [deleteConfirmMap, setDeleteConfirmMap] = useState<Record<number, boolean>>({});
@@ -121,7 +120,6 @@ export function MyRatings() {
       }, 3000);
       return;
     }
-    // Confirmado
     handleDeleteConfirm(ratingId);
   };
 
@@ -138,11 +136,8 @@ export function MyRatings() {
   const handleUpdateScore = async (ratingId: number, newScore: number) => {
     const originalRating = ratings.find(r => r.rating_id === ratingId);
     try {
-      // 1. Atualiza UI
       setRatings(prev => prev.map(r => r.rating_id === ratingId ? { ...r, score: newScore } : r));
-      // 2. Fecha modo de edição deste cartão
       setEditingId(null);
-      // 3. Guarda na API
       await api.editRating(ratingId, newScore);
       showFeedback(ratingId, 'success', 'Atualizado!');
     } catch (err) {
@@ -197,18 +192,26 @@ export function MyRatings() {
             return (
               <div key={rating.rating_id} className={`rating-row ${isEditingThis ? 'active-edit' : ''}`}>
                 
-                {/* Info Filme */}
+                {/* LADO ESQUERDO: Poster e Info (Agora com Links) */}
                 <div style={{ display: 'flex', alignItems: 'flex-start', gap: '20px', flex: 1 }}>
-                  <div className="movie-poster">
+                  
+                  {/* Poster Link */}
+                  <Link to={`/movies/${movie.id}`} className="movie-poster">
                     {movie?.poster_url ? (
                        <img src={movie.poster_url} alt={movie.title} style={{width:'100%', height:'100%', objectFit:'cover'}} />
                     ) : (
                        <span style={{fontSize:'2rem'}}>🎬</span>
                     )}
-                  </div>
+                  </Link>
                   
                   <div style={{ paddingRight: '20px' }}>
-                    <h3 className="movie-title">{movie.title}</h3>
+                    {/* Título Link */}
+                    <h3 className="movie-title">
+                      <Link to={`/movies/${movie.id}`} style={{textDecoration: 'none', color: 'inherit'}}>
+                        {movie.title}
+                      </Link>
+                    </h3>
+                    
                     <div style={{ display: 'flex', gap: '8px', fontSize: '0.85rem', color: '#64748b', marginTop: '6px', flexWrap: 'wrap' }}>
                       <span className="tag">{movie.year}</span>
                       <span className="tag">{movie.genre}</span>
@@ -222,14 +225,11 @@ export function MyRatings() {
                   </div>
                 </div>
 
-                {/* Área de Ações e Estrelas */}
+                {/* LADO DIREITO: Ações e Estrelas */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
                   
-                  {/* COLUNA DE BOTÕES (Só aparece se 'Gerir Edições' estiver ON) */}
                   {manageMode && (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                      
-                      {/* 1. Botão Editar (Fica em cima) */}
                       <button 
                         className={`btn-action btn-edit ${isEditingThis ? 'active' : ''}`}
                         onClick={() => setEditingId(isEditingThis ? null : rating.rating_id)}
@@ -237,7 +237,6 @@ export function MyRatings() {
                         {isEditingThis ? 'Cancelar' : '✏️ Editar'}
                       </button>
 
-                      {/* 2. Botão Remover (Fica em baixo) */}
                       <button 
                         className={`btn-action btn-delete ${isDeleting ? 'confirm' : ''}`}
                         onClick={() => handleDeleteClick(rating.rating_id)}
@@ -247,17 +246,14 @@ export function MyRatings() {
                     </div>
                   )}
 
-                  {/* Estrelas e Nota */}
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '6px', minWidth: '130px' }}>
                     
-                    {/* Feedback visual inline */}
                     {feedback && (
                       <span style={{ fontSize: '0.8rem', fontWeight: 'bold', color: feedback.type === 'success' ? '#16a34a' : '#dc2626' }}>
                         {feedback.type === 'success' ? '✓ ' : '✕ '}{feedback.message}
                       </span>
                     )}
 
-                    {/* Estrelas só são interativas se isEditingThis for true */}
                     <StarRating 
                       score={rating.score} 
                       isEditing={isEditingThis} 
@@ -295,12 +291,20 @@ export function MyRatings() {
         .rating-row.active-edit { border-color: #fbbf24; background-color: #fffdf5; transform: scale(1.01); }
         .rating-row:hover { border-color: var(--primary); z-index: 10; }
 
-        .movie-poster { width: 80px; height: 120px; background: #e0e7ff; border-radius: 8px; overflow: hidden; display: flex; align-items: center; justify-content: center; flex-shrink: 0; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .movie-poster { 
+          width: 80px; height: 120px; background: #e0e7ff; 
+          border-radius: 8px; overflow: hidden; display: flex; 
+          align-items: center; justify-content: center; flex-shrink: 0; 
+          box-shadow: 0 4px 6px rgba(0,0,0,0.1); 
+          text-decoration: none; /* Importante para o Link */
+        }
+        
         .movie-title { margin: 0; font-size: 1.25rem; color: var(--text-main); font-weight: 700; line-height: 1.2; }
+        .movie-title a:hover { color: var(--primary) !important; }
+
         .star-icon { width: 24px; height: 24px; transition: transform 0.1s; }
         .tag { background: #f1f5f9; color: #64748b; padding: 2px 8px; border-radius: 4px; font-size: 0.8rem; font-weight: 600; }
 
-        /* Botões de Ação */
         .btn-action {
           padding: 6px 12px; border-radius: 6px; cursor: pointer; 
           font-size: 0.8rem; font-weight: 600; width: 105px; text-align: center;

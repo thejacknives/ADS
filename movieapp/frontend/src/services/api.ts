@@ -75,4 +75,7 @@ export const api = {
     }),
 
     getMovie: (id: number) => request(`/movies/${id}/`),
+
+    getUserRecommendations: () => request('/recommendations/mine/'),
+
 };

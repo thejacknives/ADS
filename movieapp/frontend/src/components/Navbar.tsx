@@ -27,6 +27,7 @@ export function Navbar() {
             <div className="nav-links">
               <Link to="/movies">Filmes</Link>
               <Link to="/my-ratings">Minhas Avaliações</Link>
+              <Link to="/recommendations" className="nav-link">Recomendações</Link>
             </div>
           )}
         </div>

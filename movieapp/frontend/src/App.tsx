@@ -5,6 +5,7 @@ import { Navbar } from './components/Navbar';
 import { MyRatings } from './pages/MyRatings';
 import { Movies } from './pages/Movies';
 import { MovieDetail } from './pages/MovieDetail';
+import { UserRecommendations } from './pages/UserRecommendations';
 import { ApiTester } from './components/ApiTester'; // <--- Importa aqui
 
 // Placeholder
@@ -25,6 +26,7 @@ function App() {
         <Route path="/my-ratings" element={<MyRatings />} />
         <Route path="/movies" element={<Movies />} />
         <Route path="/movies/:id" element={<MovieDetail />} />
+        <Route path="/recommendations" element={<UserRecommendations />} />
         <Route path="/" element={<Navigate to="/login" replace />} />
       </Routes>
     </BrowserRouter>
