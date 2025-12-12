@@ -70,6 +70,7 @@ def _serialize_user(user):
         'id': user.user_id,
         'username': user.username,
         'email': user.email,
+        'is_admin': getattr(user, 'is_admin', False),
     }
 
 
@@ -900,7 +901,7 @@ def admin_delete_movie(request, movie_id):
 
     return Response(
         {'message': 'Movie deleted successfully'},
-        status=status.HTTP_204_NO_CONTENT,
+        status=status.HTTP_200_OK,
     )
 
 @api_view(['GET'])
