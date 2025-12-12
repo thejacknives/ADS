@@ -706,7 +706,6 @@ def _check_user_is_admin(user_id):
     
     return None, user
 
-'''
 @api_view(['GET'])
 def get_movie_details(request, movie_id):
     """
@@ -730,7 +729,7 @@ def get_movie_details(request, movie_id):
         return Response(
             {'error': 'Filme não encontrado'}, 
             status=404
-        )'''
+        )
 
 @api_view(['POST'])
 def admin_add_movie(request):
