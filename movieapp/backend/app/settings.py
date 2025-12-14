@@ -125,7 +125,7 @@ if RENDER:
     CSRF_COOKIE_SAMESITE = 'None'
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
-    # SESSION_COOKIE_DOMAIN = None # Geralmente não é necessário, mas ajuda em alguns casos
+    SESSION_COOKIE_DOMAIN = None 
 else:
     # Local: Configuração padrão
     SESSION_COOKIE_SAMESITE = 'Lax'
