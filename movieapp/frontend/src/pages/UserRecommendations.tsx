@@ -49,7 +49,7 @@ export function UserRecommendations() {
     }
   };
 
-  if (loading) return <div style={{textAlign: 'center', marginTop: '100px', color: '#64748b'}}>🔮 A procurar filmes...</div>;
+  if (loading) return <div style={{textAlign: 'center', marginTop: '100px', color: '#64748b'}}>A procurar filmes...</div>;
 
   return (
     <div style={{ width: '100%', padding: '0 40px', boxSizing: 'border-box' }}>
@@ -129,7 +129,7 @@ export function UserRecommendations() {
                      {/* MUDANÇA AQUI: Mostra o Score com Labels diferentes */}
                      {hasHistory ? (
                        <span style={{fontSize: '0.9rem', color: '#4f46e5', fontWeight: 600}}>
-                         Previsão: ⭐ {item.predicted_score.toFixed(1)}
+                         Previsão: {item.predicted_score.toFixed(1)} ⭐
                        </span>
                      ) : (
                        <span style={{fontSize: '0.9rem', color: '#1e293b', fontWeight: 600}}>

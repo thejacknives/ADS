@@ -168,7 +168,7 @@ export function MyRatings() {
               fontWeight: 600
             }}
           >
-            {manageMode ? 'Concluir Edição' : '✏️ Gerir Edições'}
+            {manageMode ? 'Concluir Edição' : 'Gerir Edições'}
           </button>
           <Link to="/movies" className="btn btn-primary">Avaliar Novo Filme</Link>
         </div>
@@ -241,7 +241,7 @@ export function MyRatings() {
                         className={`btn-action btn-delete ${isDeleting ? 'confirm' : ''}`}
                         onClick={() => handleDeleteClick(rating.rating_id)}
                       >
-                        {isDeleting ? 'Confirma?' : '🗑️ Remover'}
+                        {isDeleting ? 'Confirmar remoção?' : '🗑️ Remover'}
                       </button>
                     </div>
                   )}
