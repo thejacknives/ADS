@@ -152,7 +152,7 @@ export function AdminDashboard() {
 
       {loading ? (
         <div style={{textAlign: 'center', marginTop: '50px', color: '#64748b'}}>
-          🔄 A carregar dados...
+          A carregar dados...
         </div>
       ) : (
         <div className="table-wrapper">
