@@ -182,7 +182,6 @@ export function Movies() {
               className={`btn-toggle-filter ${showFilters ? 'active' : ''}`}
               onClick={() => setShowFilters(!showFilters)}
             >
-              <span style={{fontSize: '1.1rem'}}>🌪️</span>
               <span>Filtros</span>
             </button>
           </div>
@@ -264,7 +263,7 @@ export function Movies() {
 
       {loading && (
         <div style={{textAlign: 'center', margin: '50px 0'}}>
-           <span style={{fontSize: '1.2rem', color: '#64748b'}}>🔄 A carregar...</span>
+           <span style={{fontSize: '1.2rem', color: '#64748b'}}>A carregar...</span>
         </div>
       )}
 

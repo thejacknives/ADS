@@ -89,7 +89,7 @@ export function MovieDetail() {
     }
   };
 
-  if (loading) return <div style={{textAlign: 'center', marginTop: '100px', color: '#64748b'}}>⏳ A carregar detalhes...</div>;
+  if (loading) return <div style={{textAlign: 'center', marginTop: '100px', color: '#64748b'}}>A carregar detalhes...</div>;
   if (!movie) return <div style={{textAlign: 'center', marginTop: '100px'}}>Filme não encontrado.</div>;
 
   return (

@@ -146,7 +146,7 @@ export function MyRatings() {
     }
   };
 
-  if (loading) return <div style={{textAlign: 'center', marginTop: '100px'}}>⏳ A carregar as tuas notas...</div>;
+  if (loading) return <div style={{textAlign: 'center', marginTop: '100px'}}>A carregar as tuas notas...</div>;
 
   return (
     <div style={{ width: '100%', padding: '0 40px', boxSizing: 'border-box' }}>

@@ -2,16 +2,19 @@ import os
 from pathlib import Path
 from dotenv import load_dotenv
 import dj_database_url
+import sys
+
 load_dotenv()
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "dev-only")
 DEBUG = os.getenv("DEBUG", "false").lower() == "true"
-# replace your current ALLOWED_HOSTS line with:
+
+# ALLOWED_HOSTS dinâmico
 ALLOWED_HOSTS = [h.strip() for h in os.getenv(
     "ALLOWED_HOSTS",
-    ".onrender.com,localhost,127.0.0.1"  # default accepts any *.onrender.com
+    ".onrender.com,localhost,127.0.0.1"
 ).split(",") if h.strip()]
 
 
@@ -57,8 +60,8 @@ TEMPLATES = [
 ROOT_URLCONF = "app.urls"
 WSGI_APPLICATION = "app.wsgi.application"
 
-import sys
-# Use SQLite em memória para testes (mais rápido e sem dependências)
+
+# Configuração de Base de Dados
 if "test" in sys.argv or "pytest" in sys.argv[0]:
     DATABASES = {
         "default": {
@@ -86,38 +89,55 @@ STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 
-# Allow all origins for now (adjust in prod)
-CORS_ALLOW_ALL_ORIGINS = False
+# --- CONFIGURAÇÃO DE CORS E CSRF (DINÂMICA) ---
 
-# Autorizar explicitamente o Frontend (Vite)
+# 1. URLs locais (Desenvolvimento)
 CORS_ALLOWED_ORIGINS = [
     "http://127.0.0.1:5173",
     "http://localhost:5173",
-    "https://movieapp-frontend-kbj7.onrender.com",
-
 ]
 
-# Permitir o envio de cookies de sessão
-CORS_ALLOW_CREDENTIALS = True
-
-# Permitir CSRF para estas origens também (importante para POSTs)
 CSRF_TRUSTED_ORIGINS = [
     "http://127.0.0.1:5173",
     "http://localhost:5173",
-    "https://movieapp-frontend-kbj7.onrender.com",
 ]
 
-# Basic DRF default permissions (open for now)
-REST_FRAMEWORK = { "DEFAULT_PERMISSION_CLASSES": ["rest_framework.permissions.AllowAny"] }
+# 2. Ler URL do Frontend do Render (Variável de Ambiente)
+FRONTEND_URL = os.getenv("FRONTEND_URL")
+
+if FRONTEND_URL:
+    # Remove barras finais para evitar erros de validação
+    clean_url = FRONTEND_URL.rstrip('/')
+    CORS_ALLOWED_ORIGINS.append(clean_url)
+    CSRF_TRUSTED_ORIGINS.append(clean_url)
+
+CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOW_ALL_ORIGINS = False  # Segurança: Bloquear origens não listadas
+
+# --- CONFIGURAÇÃO DE COOKIES (SOLUÇÃO LOOP DE LOGIN) ---
+
+# Deteta se estamos no Render (Variável automática do Render)
+RENDER = os.getenv('RENDER')
+
+if RENDER:
+    # Produção (Render): Cookies Cross-Site Seguros
+    SESSION_COOKIE_SAMESITE = 'None'
+    CSRF_COOKIE_SAMESITE = 'None'
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    # SESSION_COOKIE_DOMAIN = None # Geralmente não é necessário, mas ajuda em alguns casos
+else:
+    # Local: Configuração padrão
+    SESSION_COOKIE_SAMESITE = 'Lax'
+    SESSION_COOKIE_SECURE = False
+    CSRF_COOKIE_SECURE = False
+
+
+# DRF Settings
+REST_FRAMEWORK = { 
+    "DEFAULT_PERMISSION_CLASSES": ["rest_framework.permissions.AllowAny"] 
+}
+
+# Proxy Headers (Necessário para HTTPS no Render)
 USE_X_FORWARDED_HOST = True
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
-
-SESSION_COOKIE_SAMESITE = 'None'
-CSRF_COOKIE_SAMESITE = 'None'
-
-# 2. Obrigatório quando se usa SameSite='None'. Garante que só funciona em HTTPS.
-SESSION_COOKIE_SECURE = True
-CSRF_COOKIE_SECURE = True
-
-# (Opcional, mas recomendado) Garante que o navegador não bloqueia o cookie
-SESSION_COOKIE_DOMAIN = None
