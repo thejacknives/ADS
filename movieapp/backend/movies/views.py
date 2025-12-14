@@ -18,6 +18,7 @@ from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from .models import AppUser, Movie, Rating, Recommendation
 from django.db.models import Avg, Count, Q
+from django.contrib.auth import update_session_auth_hash
 import random
 
 #test
@@ -1072,6 +1073,7 @@ def _get_authenticated_user_obj(request):
     except AppUser.DoesNotExist:
         return None
     
+'''
 @api_view(['GET', 'PUT'])
 def user_profile(request):
     """
@@ -1120,6 +1122,67 @@ def user_profile(request):
             )
         user.email = email
     
+    user.save()
+    return Response(_serialize_user(user))
+'''
+
+
+@api_view(['GET', 'PUT'])
+def user_profile(request):
+    """
+    GET: Vê o perfil.
+    PUT: Atualiza perfil (nome, email) e opcionalmente a password.
+    """
+    user = _get_authenticated_user_obj(request)
+    if not user:
+        return Response(
+            {'error': 'Authentication required'},
+            status=status.HTTP_401_UNAUTHORIZED
+        )
+    
+    if request.method == 'GET':
+        return Response(_serialize_user(user))
+    
+    # --- LÓGICA DE UPDATE (PUT) ---
+    data = request.data
+    
+    # 1. Atualizar Nome e Email
+    username = data.get('username')
+    email = data.get('email')
+    
+    if username and username != user.username:
+        if not re.fullmatch(r"[A-Za-z0-9_]+", username):
+            return Response({'error': 'Username inválido (só letras e números).'}, status=400)
+        if AppUser.objects.filter(username=username).exists():
+            return Response({'error': 'Username já existe.'}, status=400)
+        user.username = username
+    
+    if email and email != user.email:
+        try:
+            validate_email(email)
+        except ValidationError:
+            return Response({'error': 'Email inválido.'}, status=400)
+        if AppUser.objects.filter(email=email).exists():
+            return Response({'error': 'Email já existe.'}, status=400)
+        user.email = email
+
+    # 2. Atualizar Password (Opcional)
+    new_password = data.get('new_password')
+    old_password = data.get('old_password')
+
+    if new_password:
+        if not old_password:
+            return Response({'error': 'Para mudar a password, tens de indicar a antiga.'}, status=400)
+        
+        # CORREÇÃO AQUI: Usar a função check_password em vez do método do objeto
+        if not check_password(old_password, user.password):
+            return Response({'error': 'A password antiga está incorreta.'}, status=400)
+        
+        # CORREÇÃO AQUI: Usar a função make_password
+        user.password = make_password(new_password)
+        
+        # Nota: Removemos o update_session_auth_hash porque o teu login é manual via sessão
+
     user.save()
     return Response(_serialize_user(user))
 

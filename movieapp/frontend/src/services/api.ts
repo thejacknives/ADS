@@ -118,7 +118,12 @@ export const api = {
   
   getProfile: () => request('/profile/'),
 
-  updateProfile: (data: { username: string; email: string }) => 
+  updateProfile: (data: { 
+    username: string; 
+    email: string; 
+    old_password?: string; 
+    new_password?: string; 
+  }) => 
     request('/profile/', { 
       method: 'PUT', 
       body: JSON.stringify(data) 
