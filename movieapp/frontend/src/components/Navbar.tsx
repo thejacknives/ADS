@@ -28,12 +28,12 @@ export function Navbar() {
     <nav className="navbar">
       <div className="nav-content">
         
-        {/* 1. LOGO (Sempre visível) */}
+        {/* 1. LOGO */}
         <Link to={username ? "/Movies" : "/"} className="logo" onClick={closeMenu}>
           🎬 MovieApp
         </Link>
 
-        {/* 2. MENU DESKTOP (Escondido em Mobile) */}
+        {/* 2. MENU DESKTOP */}
         {username && (
           <div className="desktop-links">
             <Link to="/movies">Filmes</Link>
@@ -42,11 +42,27 @@ export function Navbar() {
           </div>
         )}
 
-        {/* 3. AÇÕES DESKTOP (Escondido em Mobile) */}
+        {/* 3. AÇÕES DESKTOP */}
         <div className="desktop-actions">
           {username ? (
+            
             <>
+            
               <span className="user-welcome">Olá, <strong>{username}</strong></span>
+              {/* --- BOTÃO DE PERFIL (Novo) --- */}
+              <Link 
+                to="/profile" 
+                className="btn btn-primary btn-sm"
+                style={{ 
+                  marginRight: '8px', 
+                  display: 'inline-flex', 
+                  alignItems: 'center', 
+                  gap: '6px',
+                  textDecoration: 'none'
+                }}
+              >
+                Perfil
+              </Link>
               
               {isAdmin && (
                 <Link to="/admin" className="btn btn-admin-desktop">
@@ -66,7 +82,7 @@ export function Navbar() {
           )}
         </div>
 
-        {/* 4. BOTÃO HAMBÚRGUER (Só visível em Mobile) */}
+        {/* 4. BOTÃO HAMBÚRGUER (Mobile) */}
         <button 
           className="mobile-toggle" 
           onClick={() => setIsMenuOpen(!isMenuOpen)}
@@ -76,12 +92,15 @@ export function Navbar() {
         </button>
       </div>
 
-      {/* 5. MENU MOBILE (Dropdown) */}
+      {/* 5. MENU MOBILE */}
       <div className={`mobile-menu ${isMenuOpen ? 'open' : ''}`}>
         {username ? (
           <>
             <div className="mobile-user-info">
-              Olá, <strong>{username}</strong>
+              {/* Link para o perfil no mobile */}
+              <Link to="/profile" onClick={closeMenu} style={{color: '#4f46e5', fontWeight: 'bold', textDecoration: 'none'}}>
+                👤 {username} (Editar Perfil)
+              </Link>
             </div>
             
             <Link to="/movies" onClick={closeMenu}>🍿 Filmes</Link>
@@ -108,9 +127,8 @@ export function Navbar() {
         )}
       </div>
 
-      {/* --- ESTILOS CSS --- */}
       <style>{`
-        /* --- ESTILOS BASE (Desktop) --- */
+        /* --- ESTILOS BASE --- */
         .navbar { 
           position: fixed; top: 20px; left: 50%; transform: translateX(-50%); 
           z-index: 1000; width: 90%; max-width: 1200px;
@@ -133,32 +151,29 @@ export function Navbar() {
         .desktop-links a:hover { color: #4f46e5; }
 
         .desktop-actions { display: flex; align-items: center; gap: 10px; }
-        .user-welcome { color: #64748b; font-size: 0.9rem; margin-right: 5px; }
 
         /* Botões */
         .btn-sm { padding: 0.5rem 1rem; font-size: 0.85rem; }
+        
         .btn-admin-desktop {
           background-color: #1e293b; color: white;
           padding: 0.5rem 1rem; font-size: 0.85rem;
           text-decoration: none; display: inline-flex; align-items: center; gap: 5px;
+          border-radius: 12px; /* Ajuste para combinar com o tema */
         }
         .btn-admin-desktop:hover { background-color: #0f172a; }
 
         .mobile-toggle { display: none; background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #1e293b; }
         .mobile-menu { display: none; }
 
-        /* --- RESPONSIVIDADE (Mobile/Tablet < 900px) --- */
+        /* --- RESPONSIVIDADE --- */
         @media (max-width: 900px) {
           .navbar { width: 95%; top: 10px; }
           .nav-content { padding: 0.8rem 1rem; }
           
-          /* Esconder elementos Desktop */
           .desktop-links, .desktop-actions { display: none; }
-          
-          /* Mostrar Toggle */
           .mobile-toggle { display: block; }
 
-          /* Menu Mobile (Dropdown) */
           .mobile-menu {
             display: block; overflow: hidden;
             max-height: 0; opacity: 0;
@@ -179,9 +194,8 @@ export function Navbar() {
             border-bottom: 1px solid #f8fafc;
           }
           
-          .mobile-user-info { font-size: 0.9rem; color: #64748b; margin-bottom: 10px; }
+          .mobile-user-info { margin-bottom: 10px; padding-bottom: 5px; border-bottom: 1px solid #e2e8f0; }
           .mobile-divider { height: 10px; }
-          
           .mobile-admin-link { color: #4f46e5 !important; font-weight: 700 !important; }
           
           .mobile-logout {

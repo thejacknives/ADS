@@ -8,7 +8,8 @@ import { MovieDetail } from './pages/MovieDetail';
 import { UserRecommendations } from './pages/UserRecommendations';
 import { AdminDashboard } from './pages/AdminDashboard';
 import { AdminRoute } from './components/AdminRoute';
-import { ApiTester } from './components/ApiTester'; // <--- Importa aqui
+import { Profile } from './pages/Profile';
+//import { ApiTester } from './components/ApiTester';
 
 // Placeholder
 const MoviesPage = () => <h2>🍿 Página de Filmes</h2>;
@@ -34,8 +35,9 @@ function App() {
             <AdminRoute>
               <AdminDashboard />
             </AdminRoute>
-          } 
+          }
         />
+        <Route path="/profile" element={<Profile />} />
         <Route path="/recommendations" element={<UserRecommendations />} />
         <Route path="/" element={<Navigate to="/login" replace />} />
       </Routes>
