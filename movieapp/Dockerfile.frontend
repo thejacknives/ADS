@@ -3,6 +3,14 @@ WORKDIR /src
 COPY frontend/package.json frontend/package-lock.json* ./
 RUN if [ -f package-lock.json ]; then npm ci; else npm install; fi
 COPY frontend/ ./
+
+# --- AQUI ESTÁ A CORREÇÃO ---
+# 1. Receber a variável do Render
+ARG VITE_API_URL
+# 2. Passá-la para o ambiente onde o 'npm run build' vai correr
+ENV VITE_API_URL=$VITE_API_URL
+# ----------------------------
+
 RUN npm run build
 
 FROM nginx:alpine
