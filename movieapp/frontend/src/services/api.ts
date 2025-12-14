@@ -115,4 +115,13 @@ export const api = {
     request(`/admin/movies/${id}/delete/`, { 
       method: 'DELETE' 
     }),
+  
+  getProfile: () => request('/profile/'),
+
+  updateProfile: (data: { username: string; email: string }) => 
+    request('/profile/', { 
+      method: 'PUT', 
+      body: JSON.stringify(data) 
+    }),
+
 };
