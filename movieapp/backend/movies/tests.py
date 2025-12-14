@@ -6,7 +6,7 @@ from datetime import timedelta
 from .models import AppUser, Movie, Rating
 SQLITE_DB = {"default": {"ENGINE": "django.db.backends.sqlite3", "NAME": ":memory:"}}
 
-
+#test
 @override_settings(DATABASES=SQLITE_DB)
 class AuthTests(TestCase):
     def setUp(self):
