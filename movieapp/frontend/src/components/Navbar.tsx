@@ -66,7 +66,7 @@ export function Navbar() {
               
               {isAdmin && (
                 <Link to="/admin" className="btn btn-admin-desktop">
-                  🛠️ Admin
+                  Painel Admin
                 </Link>
               )}
 
