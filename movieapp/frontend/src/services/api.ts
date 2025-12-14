@@ -1,6 +1,16 @@
 // src/services/api.ts
 
-const API_BASE_URL = '/api';
+// 1. Determine the Backend URL based on the environment
+// On Render: It will read the VITE_API_URL variable you set in the dashboard.
+// On Localhost: It defaults to http://localhost:8000
+const BASE_URL = 'https://movieapp-backend-tsu0.onrender.com'
+
+
+// 2. Add the /api prefix
+// Final Result: "https://your-backend.onrender.com/api"
+const API_BASE_URL = `${BASE_URL}/api`;
+
+console.log("API IS CONNECTING TO:", API_BASE_URL); // Debug log to see in browser console
 
 async function request(endpoint: string, options: RequestInit = {}) {
   const defaultHeaders = {
@@ -13,6 +23,7 @@ async function request(endpoint: string, options: RequestInit = {}) {
     credentials: 'include' as RequestCredentials,
   };
 
+  // 3. Use the dynamic API_BASE_URL
   const response = await fetch(`${API_BASE_URL}${endpoint}`, config);
 
   if (response.status === 401 && window.location.pathname !== '/login' && window.location.pathname !== '/register') {
@@ -32,6 +43,16 @@ async function request(endpoint: string, options: RequestInit = {}) {
   return response.json();
 }
 
+// Ensure SearchParams interface is defined (or imported if you have it in types.ts)
+interface SearchParams {
+  q?: string;
+  genre?: string;
+  year_min?: number;
+  year_max?: number;
+  rating_min?: number;
+  sort?: string;
+}
+
 export const api = {
   login: (data: { email: string; password: string }) => 
     request('/auth/login/', { method: 'POST', body: JSON.stringify(data) }),
@@ -41,7 +62,6 @@ export const api = {
 
   logout: () => request('/auth/logout/', { method: 'POST' }),
 
-  // Devolve { user_id, ratings: [{ rating_id, score, movie_id, ... }] }
   getMyRatings: () => request('/ratings/mine/'),
 
   getMyRatingsDetails: () => request('/ratings/mine/details/'),
@@ -98,5 +118,4 @@ export const api = {
     request(`/admin/movies/${id}/delete/`, { 
       method: 'DELETE' 
     }),
-
 };

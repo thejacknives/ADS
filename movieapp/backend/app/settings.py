@@ -57,12 +57,19 @@ TEMPLATES = [
 ROOT_URLCONF = "app.urls"
 WSGI_APPLICATION = "app.wsgi.application"
 
-
-if os.getenv("DATABASE_URL"):
+import sys
+# Use SQLite em memória para testes (mais rápido e sem dependências)
+if "test" in sys.argv or "pytest" in sys.argv[0]:
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": ":memory:",
+        }
+    }
+elif os.getenv("DATABASE_URL"):
     DATABASES = {
         "default": dj_database_url.parse(os.environ["DATABASE_URL"], conn_max_age=600)
     }
-
 else:
     DATABASES = {
         "default": {
@@ -104,3 +111,13 @@ CSRF_TRUSTED_ORIGINS = [
 REST_FRAMEWORK = { "DEFAULT_PERMISSION_CLASSES": ["rest_framework.permissions.AllowAny"] }
 USE_X_FORWARDED_HOST = True
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
+SESSION_COOKIE_SAMESITE = 'None'
+CSRF_COOKIE_SAMESITE = 'None'
+
+# 2. Obrigatório quando se usa SameSite='None'. Garante que só funciona em HTTPS.
+SESSION_COOKIE_SECURE = True
+CSRF_COOKIE_SECURE = True
+
+# (Opcional, mas recomendado) Garante que o navegador não bloqueia o cookie
+SESSION_COOKIE_DOMAIN = None
