@@ -116,28 +116,28 @@ CORS_ALLOW_ALL_ORIGINS = False  # Segurança: Bloquear origens não listadas
 
 # --- CONFIGURAÇÃO DE COOKIES (SOLUÇÃO LOOP DE LOGIN) ---
 
-# Deteta se estamos no Render (Variável automática do Render)
-RENDER = os.getenv('RENDER')
+RENDER = os.getenv('RENDER', False)
 
 if RENDER:
-    # Produção (Render): Cookies Cross-Site Seguros
+    # PRODUÇÃO (Render)
+    # Permite cookies entre domínios diferentes (Frontend <-> Backend)
     SESSION_COOKIE_SAMESITE = 'None'
     CSRF_COOKIE_SAMESITE = 'None'
+    
+    # Obrigatório para SameSite='None' (só funciona com HTTPS)
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
-    SESSION_COOKIE_DOMAIN = None 
+    
+    # Garante que o domínio não interfere (opcional mas recomendado)
+    SESSION_COOKIE_DOMAIN = None
+    
+    # Segurança extra para produção
+    SECURE_SSL_REDIRECT = True
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
 else:
-    # Local: Configuração padrão
+    # DESENVOLVIMENTO (Localhost)
+    # Configuração relaxada para funcionar sem HTTPS
     SESSION_COOKIE_SAMESITE = 'Lax'
     SESSION_COOKIE_SECURE = False
     CSRF_COOKIE_SECURE = False
-
-
-# DRF Settings
-REST_FRAMEWORK = { 
-    "DEFAULT_PERMISSION_CLASSES": ["rest_framework.permissions.AllowAny"] 
-}
-
-# Proxy Headers (Necessário para HTTPS no Render)
-USE_X_FORWARDED_HOST = True
-SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
